@@ -1,0 +1,1 @@
+# armenian-belote-trainer-app
