@@ -1,7 +1,9 @@
+import type { CSSProperties } from "react";
 import type { Card, PlayerView, Seat } from "../lib/types";
 import { cardKey, names, symbols, dealEvents } from "../lib/types";
 import Icon from "./Icon";
 import PlayingCard from "./PlayingCard";
+import TrickCards from "./TrickCards";
 export function Players({
   view,
   bidding = false,
@@ -84,17 +86,13 @@ export function Players({
 }
 export default function Table({
   view,
-  selected,
-  onSelect,
   onPlay,
   onCoach,
   onMenu,
   onDeclarations,
 }: {
   view: PlayerView;
-  selected: Card | null;
-  onSelect: (card: Card) => void;
-  onPlay: () => void;
+  onPlay: (card: Card) => void;
   onCoach: () => void;
   onMenu: () => void;
   onDeclarations: () => void;
@@ -175,10 +173,8 @@ export default function Table({
             <span>Բ</span>
             <p>Базар блот</p>
           </div>
-          <div className="trick" aria-label="Карты на столе">
-            {current.map((p) => (
-              <PlayingCard key={cardKey(p.card)} card={p.card} />
-            ))}
+          <div className="trick">
+            <TrickCards plays={current} />
           </div>
           <div className="turn-prompt" role="status">
             <span className="turn-dot" />
@@ -200,7 +196,17 @@ export default function Table({
                     : "показ комбинаций"}
             </div>
           )}
-          <div className="hand" aria-label="Ваши карты">
+          <div
+            className="hand"
+            aria-label="Ваши карты"
+            data-count={view.hand.length}
+            style={
+              {
+                "--hand-count": view.hand.length,
+                "--hand-gaps": Math.max(1, view.hand.length - 1),
+              } as CSSProperties
+            }
+          >
             {view.hand.map((c, i) => (
               <PlayingCard
                 key={cardKey(c)}
@@ -208,8 +214,7 @@ export default function Table({
                 index={i}
                 total={view.hand.length}
                 disabled={!legal.has(cardKey(c))}
-                selected={selected !== null && cardKey(selected) === cardKey(c)}
-                onClick={() => onSelect(c)}
+                onClick={() => onPlay(c)}
               />
             ))}
           </div>
@@ -217,21 +222,6 @@ export default function Table({
             <Icon name="spark" />
             Тренер
           </button>
-          <div className="hand-controls">
-            <span>
-              {selected
-                ? `Выбрано ${symbols[selected.suit]}`
-                : "Выберите карту"}
-            </span>
-            <button
-              className="play-button"
-              disabled={!selected || !legal.has(cardKey(selected))}
-              onClick={onPlay}
-            >
-              Сыграть карту
-              <Icon name="arrow" />
-            </button>
-          </div>
         </div>
       </div>
       <aside className="coach-panel desktop-coach">

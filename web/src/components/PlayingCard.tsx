@@ -3,14 +3,12 @@ import type { Card } from "../lib/types";
 import { ranks, symbols, suitNames } from "../lib/types";
 export default function PlayingCard({
   card,
-  selected = false,
   disabled = false,
   onClick,
   index = 0,
   total = 1,
 }: {
   card: Card;
-  selected?: boolean;
   disabled?: boolean;
   onClick?: () => void;
   index?: number;
@@ -74,15 +72,10 @@ export default function PlayingCard({
         {rank}
         <small>{suit}</small>
       </span>
-      {onClick && (
-        <span className="selected-marker" aria-hidden="true">
-          ✓
-        </span>
-      )}
     </>
   );
   const props = {
-    className: `playing-card ${red ? "red" : ""} ${selected ? "selected" : ""}`,
+    className: `playing-card ${red ? "red" : ""}`,
     style: {
       "--angle": (index - (total - 1) / 2) * 2,
       "--curve": Math.abs(index - (total - 1) / 2) * 2,
@@ -90,12 +83,7 @@ export default function PlayingCard({
     "aria-label": `${rank} ${suitNames[card.suit]}`,
   };
   return onClick ? (
-    <button
-      {...props}
-      onClick={onClick}
-      disabled={disabled}
-      aria-pressed={selected}
-    >
+    <button {...props} onClick={onClick} disabled={disabled}>
       {face}
     </button>
   ) : (

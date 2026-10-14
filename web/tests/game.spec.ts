@@ -72,8 +72,10 @@ test("real auction, legal hand, pause for coach, AI failure and exact reload con
     .poll(async () => page.locator(".hand button:enabled").count())
     .toBeGreaterThan(0);
   expect(await page.locator(".hand button").count()).toBeGreaterThan(0);
-  await page.locator(".hand button:enabled").first().click();
-  await page.getByRole("button", { name: "Сыграть карту" }).click();
+  await page
+    .locator(".hand button:enabled")
+    .first()
+    .click({ position: { x: 10, y: 16 } });
   await page.getByRole("button", { name: "Меню партии" }).click();
   await page.getByRole("button", { name: "Сохранить и выйти в меню" }).click();
   await expect(
@@ -105,8 +107,7 @@ test("complete a genuine match, save history, export, import and replay", async 
     if (Date.now() > limit) throw new Error("Match did not finish");
     const playable = page.locator(".hand button:enabled");
     if (await playable.count()) {
-      await playable.first().click();
-      await page.getByRole("button", { name: "Сыграть карту" }).click();
+      await playable.first().click({ position: { x: 10, y: 16 } });
     } else await page.waitForTimeout(200);
   }
   await expect(page.getByText("Победили соперники")).toBeVisible();
@@ -170,4 +171,130 @@ test("production app starts offline after caching and keeps a local active game"
     JSON.parse(before.snapshot).actions.length,
   );
   await context.setOffline(false);
+});
+
+async function checkFan(page: Page, selector: string, count: number) {
+  const hand = page.locator(selector);
+  await expect(hand.locator(".playing-card")).toHaveCount(count);
+  const metrics = await hand.evaluate((element) => {
+    const board = element
+      .closest(".game-board, .bid-table")!
+      .getBoundingClientRect();
+    const cards = [...element.querySelectorAll(".playing-card")].map((card) => {
+      const rect = card.getBoundingClientRect();
+      const corner = card.querySelector(".corner")!;
+      const index = corner.getBoundingClientRect();
+      return {
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        bottom: rect.bottom,
+        rankSize: parseFloat(getComputedStyle(corner).fontSize),
+        suitSize: parseFloat(
+          getComputedStyle(corner.querySelector("small")!).fontSize,
+        ),
+        indexTop: index.top,
+      };
+    });
+    return {
+      board: { left: board.left, right: board.right, bottom: board.bottom },
+      cards,
+      overflow: getComputedStyle(element).overflowX,
+      pageOverflow: document.documentElement.scrollWidth > window.innerWidth,
+    };
+  });
+  expect(metrics.overflow).toBe("visible");
+  expect(metrics.pageOverflow).toBe(false);
+  expect(
+    Math.max(...metrics.cards.map((c) => c.top)) -
+      Math.min(...metrics.cards.map((c) => c.top)),
+  ).toBeLessThan(16);
+  for (const card of metrics.cards) {
+    expect(card.left).toBeGreaterThanOrEqual(metrics.board.left);
+    expect(card.right).toBeLessThanOrEqual(metrics.board.right);
+    expect(card.bottom).toBeLessThanOrEqual(metrics.board.bottom);
+    expect(card.rankSize).toBeGreaterThanOrEqual(20);
+    expect(card.suitSize).toBeGreaterThanOrEqual(17);
+  }
+}
+
+async function checkTrickSeats(page: Page) {
+  const positions = await page.locator(".trick-cards").evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    return [...element.querySelectorAll<HTMLElement>(".trick-play")].map(
+      (card) => {
+        const rect = card.getBoundingClientRect();
+        const matrix = new DOMMatrixReadOnly(getComputedStyle(card).transform);
+        return {
+          seat: card.dataset.seat,
+          x: rect.left + rect.width / 2 - (bounds.left + bounds.width / 2),
+          y: rect.top + rect.height / 2 - (bounds.top + bounds.height / 2),
+          angle: Math.round((Math.atan2(matrix.b, matrix.a) * 180) / Math.PI),
+        };
+      },
+    );
+  });
+  expect(positions).toHaveLength(4);
+  const seats = Object.fromEntries(positions.map((p) => [p.seat, p]));
+  expect(seats.SOUTH.y).toBeGreaterThan(0);
+  expect(seats.NORTH.y).toBeLessThan(0);
+  expect(seats.WEST.x).toBeLessThan(0);
+  expect(seats.EAST.x).toBeGreaterThan(0);
+  expect(seats.SOUTH.angle).toBe(0);
+  expect(Math.abs(seats.NORTH.angle)).toBe(180);
+  expect(seats.WEST.angle).toBe(90);
+  expect(seats.EAST.angle).toBe(-90);
+}
+
+test.describe("touch table", () => {
+  test.use({ hasTouch: true });
+  test("single-row mobile hand, one-tap play and seat-facing trick survive rotation", async ({
+    page,
+  }) => {
+    await start(page);
+    for (const width of [320, 390, 430]) {
+      await page.setViewportSize({ width, height: 844 });
+      await checkFan(page, ".bid-hand", 8);
+    }
+    await closeAuction(page);
+    await expect
+      .poll(() => page.locator(".hand button:enabled").count())
+      .toBeGreaterThan(0);
+    for (const [width, height] of [
+      [320, 740],
+      [390, 844],
+      [430, 932],
+      [844, 390],
+      [568, 320],
+    ]) {
+      await page.setViewportSize({ width, height });
+      await checkFan(page, ".hand", 8);
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    const card = page.locator(".hand button:enabled").first();
+    const label = await card.getAttribute("aria-label");
+    await card.tap({ position: { x: 10, y: 16 } });
+    await expect(page.locator(".hand button")).toHaveCount(7);
+    await expect(
+      page.getByRole("button", { name: "Сыграть карту" }),
+    ).toHaveCount(0);
+    await expect(
+      page.locator('.trick-play[data-seat="SOUTH"] .playing-card'),
+    ).toHaveAttribute("aria-label", label!);
+    await expect(page.locator(".trick-play")).toHaveCount(4);
+    await page.getByRole("button", { name: "Меню партии" }).click();
+    for (const [width, height] of [
+      [320, 740],
+      [390, 844],
+      [844, 390],
+      [568, 320],
+      [1440, 980],
+      [1024, 768],
+      [540, 844],
+    ]) {
+      await page.setViewportSize({ width, height });
+      await checkTrickSeats(page);
+      await checkFan(page, ".hand", 7);
+    }
+  });
 });

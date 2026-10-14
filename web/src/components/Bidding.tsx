@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import type { Action, PlayerView, Suit } from "../lib/types";
 import { SUITS, symbols, suitNames, names, cardKey } from "../lib/types";
 import Icon from "./Icon";
@@ -75,7 +75,17 @@ export default function Bidding({
               ? "Ваша очередь"
               : `Слово: ${names[view.auction.turn]}`}
         </div>
-        <div className="bid-hand" aria-label="Ваши карты во время торговли">
+        <div
+          className="bid-hand"
+          aria-label="Ваши карты во время торговли"
+          data-count={view.hand.length}
+          style={
+            {
+              "--hand-count": view.hand.length,
+              "--hand-gaps": Math.max(1, view.hand.length - 1),
+            } as CSSProperties
+          }
+        >
           {view.hand.map((c, i) => (
             <PlayingCard
               key={cardKey(c)}

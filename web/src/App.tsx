@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Card, ChatMessage, PlayerView, SavedMatch } from "./lib/types";
+import type { ChatMessage, PlayerView, SavedMatch } from "./lib/types";
 import { names } from "./lib/types";
 import { useOfflineGame } from "./lib/useOfflineGame";
 import { importMatch } from "./lib/transfer";
@@ -22,7 +22,6 @@ const screenFromHash = (): Screen => {
 };
 export default function App() {
   const [screen, setScreen] = useState<Screen>(screenFromHash),
-    [selected, setSelected] = useState<Card | null>(null),
     [modal, setModal] = useState<
       "game" | "replace" | "help" | "delete" | "declarations" | null
     >(null),
@@ -57,9 +56,6 @@ export default function App() {
     document.body.dataset.view =
       screen === "game" ? (bidding ? "bid" : "table") : screen;
   }, [screen, bidding]);
-  useEffect(() => {
-    setSelected(null);
-  }, [game.session?.snapshot]);
   useEffect(() => {
     if (game.ready && screen === "game" && !game.session) setScreen("menu");
     if (game.ready && screen === "review" && !review) setScreen("history");
@@ -198,17 +194,10 @@ export default function App() {
               ) : (
                 <Table
                   view={game.view}
-                  selected={selected}
                   onDeclarations={() => setModal("declarations")}
-                  onSelect={setSelected}
-                  onPlay={() => {
-                    if (selected)
-                      game.action({
-                        type: "play",
-                        seat: "SOUTH",
-                        card: selected,
-                      });
-                  }}
+                  onPlay={(card) =>
+                    game.action({ type: "play", seat: "SOUTH", card })
+                  }
                   onCoach={() => openCoach()}
                   onMenu={() => setModal("game")}
                 />

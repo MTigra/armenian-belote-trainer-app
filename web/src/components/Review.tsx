@@ -5,6 +5,7 @@ import { replayAt, stateOf, viewOf } from "../lib/engine";
 import { downloadMatch } from "../lib/transfer";
 import Icon from "./Icon";
 import PlayingCard from "./PlayingCard";
+import TrickCards from "./TrickCards";
 export default function Review({
   match,
   onBack,
@@ -68,9 +69,7 @@ export default function Review({
               </span>
             </div>
             <div className="snapshot-cards">
-              {plays.map((p) => (
-                <PlayingCard key={cardKey(p.card)} card={p.card} />
-              ))}
+              <TrickCards plays={plays} />
             </div>
             <p>{description}</p>
           </div>
