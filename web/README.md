@@ -13,7 +13,7 @@ pnpm dev
 
 `pnpm dev` сначала собирает JavaScript-пакет общего движка через Gradle Wrapper, затем запускает Vite на http://localhost:5173. После первой сборки для работы над интерфейсом можно запускать `pnpm dev:web`. `pnpm build` собирает движок и приложение; результат — `web/dist`.
 
-Для публикации в подкаталоге задайте базовый путь с завершающим `/`: `VITE_BASE_PATH=/armenian-belote-trainer-app/ pnpm build`. Путь используется также для manifest и service worker. Опубликованная демонстрация: https://mtigra.github.io/armenian-belote-trainer-app/ .
+Для GitHub Pages используйте `pnpm build:pages`: задаются подкаталог `/armenian-belote-trainer-app/` и API `https://armenian-blot.onrender.com`. Путь используется также для manifest и service worker. Другой сервер можно задать через `VITE_API_URL`. Опубликованный клиент: https://mtigra.github.io/armenian-belote-trainer-app/ . На https://armenian-blot.onrender.com/ клиент использует собственный origin; обычная Docker-сборка не содержит адрес GitHub Pages.
 
 Обновление демонстрации из корня репозитория: после этой сборки выполните `python3 scripts/publish-pages.py` с авторизованным `gh`. Скрипт публикует только готовые файлы в ветку `gh-pages`; GitHub Pages использует корень этой ветки. Исходники и локальные данные пользователей в публикацию не входят.
 
@@ -35,7 +35,7 @@ pnpm dev
 
 ## Что ещё не подключено
 
-Публичное размещение Ktor, реальный AI-провайдер и Capacitor. Для локальной сетевой проверки используйте `pnpm dev:online`: Vite проксирует `/api` на :8080. Для GitHub Pages задайте `VITE_API_URL` при сборке или адрес HTTPS-сервера в «Настройки подключения». Без доступного сервера интерфейс показывает ошибку и позволяет продолжить офлайн.
+Реальный AI-провайдер и Capacitor. Ktor уже размещён на Render Free. Для локальной сетевой проверки используйте `pnpm dev:online`: Vite проксирует `/api` на :8080. Для GitHub Pages задайте `VITE_API_URL` при сборке или адрес HTTPS-сервера в «Настройки подключения». Без доступного сервера интерфейс показывает ошибку и позволяет продолжить офлайн.
 
 Чат отправляет вопрос, четырёхзначный код и только `PlayerView`. Ktor сейчас возвращает 503 `TRAINER_UNAVAILABLE`; игра при этом продолжается. Момент фиксируется при отправке вопроса; в онлайне сообщения о прошлых состояниях помечаются. Фиктивных ответов и применения ходов модели нет.
 
@@ -57,3 +57,12 @@ pnpm test:e2e
 Vitest проверяет адаптер, IndexedDB, обмен архивами и изоляцию AI. Playwright на production-сборке разыгрывает настоящий матч, проверяет продолжение после reload, паузу ботов, отказ AI, историю, импорт/экспорт и запуск без сети. Отдельный сценарий проверяет касание карты, один ряд без скролла и расположение/поворот карт по местам при смене ориентации. Для имеющегося Chromium можно задать `PLAYWRIGHT_CHROMIUM_EXECUTABLE`.
 
 В root CI добавлены проверки интерфейса. Исходный статический дизайн-макет сохранён в `docs/design-prototype/`; рабочее приложение — `web/`.
+
+## Проверка публичного размещения
+
+`E2E_BASE_URL` задаёт адрес опубликованного клиента и отключает локальный preview, `E2E_API_URL` — адрес API. Для проверки default API опубликованного GitHub Pages задайте `E2E_USE_DEFAULT_API=1`: первый гость начинает с прежним сохранённым адресом Pages, остальные — без пользовательского адреса. `E2E_PROXY_URL` нужен только в среде, использующей HTTP-прокси; проверка TLS остаётся включённой.
+
+```sh
+E2E_BASE_URL=https://armenian-blot.onrender.com/ E2E_API_URL=https://armenian-blot.onrender.com pnpm --filter @blot/web test:e2e -- online.spec.ts
+E2E_BASE_URL=https://mtigra.github.io/armenian-belote-trainer-app/ E2E_API_URL=https://armenian-blot.onrender.com E2E_USE_DEFAULT_API=1 pnpm --filter @blot/web test:e2e -- online.spec.ts
+```

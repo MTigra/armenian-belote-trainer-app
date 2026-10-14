@@ -9,9 +9,20 @@ export class OnlineFailure extends Error {
 }
 export function serverOrigin(): string {
   try {
+    const stored = localStorage.getItem("blot.serverOrigin");
+    const configured = import.meta.env.VITE_API_URL;
+    // Older Pages builds saved their static site as the API; move that default
+    // to the deployed server while keeping explicitly selected API origins.
+    if (
+      configured &&
+      typeof location !== "undefined" &&
+      location.hostname.endsWith(".github.io") &&
+      stored === location.origin
+    )
+      return configured;
     return (
-      localStorage.getItem("blot.serverOrigin") ||
-      import.meta.env.VITE_API_URL ||
+      stored ||
+      configured ||
       (typeof location === "undefined" ? "http://localhost" : location.origin)
     );
   } catch {

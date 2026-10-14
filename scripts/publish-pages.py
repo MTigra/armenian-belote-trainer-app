@@ -21,7 +21,7 @@ def api(endpoint, payload=None):
 
 def publish():
     if not (DIST / "index.html").is_file():
-        raise SystemExit("Build the website first: VITE_BASE_PATH=/armenian-belote-trainer-app/ pnpm build")
+        raise SystemExit("Build the website first: pnpm build:pages")
     index = (DIST / "index.html").read_text()
     if '/armenian-belote-trainer-app/assets/' not in index:
         raise SystemExit("Build with VITE_BASE_PATH=/armenian-belote-trainer-app/ before publishing")
@@ -35,7 +35,7 @@ def publish():
         blob = api("git/blobs", {"content": base64.b64encode(data).decode(), "encoding": "base64"})
         tree.append({"path": name, "mode": "100644", "type": "blob", "sha": blob["sha"]})
     tree_sha = api("git/trees", {"tree": tree})["sha"]
-    commit = api("git/commits", {"message": "Publish playable offline Blot preview", "tree": tree_sha,
+    commit = api("git/commits", {"message": "Publish Blot web client", "tree": tree_sha,
                                   "parents": [previous] if previous else []})
     if previous:
         subprocess.run(["gh", "api", f"repos/{REPOSITORY}/git/refs/heads/{BRANCH}",

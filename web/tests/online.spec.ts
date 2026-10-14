@@ -26,7 +26,7 @@ test("four guests play online, resume their own seat, keep coach independent and
   browser,
   baseURL,
 }) => {
-  test.setTimeout(120000);
+  test.setTimeout(process.env.E2E_BASE_URL ? 300000 : 120000);
   const contexts = await Promise.all(
     Array.from({ length: 4 }, () =>
       browser.newContext({ viewport: { width: 390, height: 844 } }),
@@ -34,11 +34,16 @@ test("four guests play online, resume their own seat, keep coach independent and
   );
   const pages = await Promise.all(contexts.map((context) => context.newPage()));
   try {
-    for (const page of pages) {
-      await page.addInitScript(
-        (origin) => localStorage.setItem("blot.serverOrigin", origin),
-        api,
+    if (process.env.E2E_USE_DEFAULT_API === "1")
+      await pages[0].addInitScript(() =>
+        localStorage.setItem("blot.serverOrigin", location.origin),
       );
+    for (const page of pages) {
+      if (process.env.E2E_USE_DEFAULT_API !== "1")
+        await page.addInitScript(
+          (origin) => localStorage.setItem("blot.serverOrigin", origin),
+          api,
+        );
       await page.goto(baseURL!);
     }
     // Keep a genuine unfinished offline game beside the online match.
