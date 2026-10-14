@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/armenian-belote-trainer-app/sw.js', { scope: '/armenian-belote-trainer-app/' })})}
