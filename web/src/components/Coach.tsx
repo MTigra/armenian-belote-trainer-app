@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ChatMessage, PlayerView } from "../lib/types";
+import type { ChatMessage, PlayerView, Seat } from "../lib/types";
 import { askTrainer } from "../lib/trainer";
 import { names } from "../lib/types";
 import Icon from "./Icon";
@@ -12,6 +12,8 @@ export default function Coach({
   onClose,
   code,
   onCode,
+  online = false,
+  labels = names,
 }: {
   view: PlayerView;
   actionIndex: number;
@@ -20,6 +22,8 @@ export default function Coach({
   onClose: () => void;
   code: string;
   onCode: (code: string) => void;
+  online?: boolean;
+  labels?: Record<Seat, string>;
 }) {
   const [question, setQuestion] = useState(""),
     [error, setError] = useState(""),
@@ -92,8 +96,8 @@ export default function Coach({
       <div className="coach-context">
         <Icon name="pause" />
         Раздача {view.dealNumber} ·{" "}
-        {view.phase === "BIDDING" ? "торговля" : `ход: ${names[view.turn]}`} ·
-        партия на паузе
+        {view.phase === "BIDDING" ? "торговля" : `ход: ${labels[view.turn]}`} ·
+        {online ? "партия продолжается" : "партия на паузе"}
       </div>
       <div className="coach-messages" ref={list}>
         <p className="coach-status">
@@ -104,6 +108,10 @@ export default function Coach({
           <div key={m.id} className={`message ${m.role}`}>
             <small>
               Раздача {m.moment.deal} · действие {m.moment.action}
+              {online &&
+                (m.moment.deal !== view.dealNumber ||
+                  m.moment.action !== actionIndex) &&
+                " · прошлый момент"}
             </small>
             {m.text}
           </div>

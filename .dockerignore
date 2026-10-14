@@ -1,0 +1,15 @@
+.git
+.gradle
+.kotlin
+**/build
+**/node_modules
+web/dist
+web/test-results
+web/playwright-report
+skills
+previews
+docs
+.env
+.env.*
+**/__pycache__
+**/*.tsbuildinfo

@@ -45,3 +45,43 @@ it("archive and clearing active are one transaction; duplicates are not added", 
   await deleteMatch(m.id);
   expect((await loadMatches()).some((v) => v.id === m.id)).toBe(false);
 });
+
+it("online archive preserves the active offline game and consumes only its own dialogue", async () => {
+  const { saveOnlineChat, loadOnlineChat, finishOnlineMatch } = await import(
+    "./storage"
+  );
+  const offline = newSession(3, "SOUTH");
+  await saveActive(offline);
+  const message = {
+    id: "message",
+    role: "user" as const,
+    text: "Почему этот ход?",
+    moment: { deal: 1, action: 5 },
+    createdAt: 1,
+  };
+  await saveOnlineChat("online-test", [message]);
+  const match: SavedMatch = {
+    id: "online-test",
+    createdAt: 1,
+    finishedAt: 2,
+    chat: [message],
+    record: {
+      profileVersion: "armenian-training-0.1",
+      formatVersion: 1,
+      setups: [],
+      actions: [],
+    },
+    scores: { northSouth: 0, eastWest: 400 },
+    winner: "EAST_WEST",
+    seat: "WEST",
+    source: "online",
+  };
+  await finishOnlineMatch(match);
+  expect(await loadActive()).toEqual(offline);
+  expect(await loadOnlineChat(match.id)).toEqual([]);
+  expect((await loadMatches()).find((value) => value.id === match.id)).toEqual(
+    match,
+  );
+  await deleteMatch(match.id);
+  await clearActive();
+});

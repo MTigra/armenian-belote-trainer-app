@@ -1,5 +1,5 @@
-import type { CSSProperties } from "react";
-import type { Card, PlayerView, Seat } from "../lib/types";
+import type { CSSProperties, ReactNode } from "react";
+import type { Card, PlayerView, Seat, PlayerPresence } from "../lib/types";
 import { cardKey, names, symbols, dealEvents } from "../lib/types";
 import Icon from "./Icon";
 import PlayingCard from "./PlayingCard";
@@ -7,9 +7,13 @@ import TrickCards from "./TrickCards";
 export function Players({
   view,
   bidding = false,
+  labels = names,
+  presence = {},
 }: {
   view: PlayerView;
   bidding?: boolean;
+  labels?: Record<Seat, string>;
+  presence?: PlayerPresence;
 }) {
   return (
     <>
@@ -38,12 +42,29 @@ export function Players({
         return (
           <div
             key={seat}
+            data-connection={
+              presence[seat]?.bot
+                ? "bot"
+                : presence[seat]?.connected === false
+                  ? "waiting"
+                  : "connected"
+            }
             className={`${bidding ? `bid-opponent bid-${seat === "NORTH" ? "north" : seat === "WEST" ? "west" : "east"}` : `player player-${pos}`} ${active ? "active-player" : ""}`}
           >
             <div
               className={`avatar ${seat === "NORTH" ? "avatar-gold" : seat === "WEST" ? "avatar-blue" : "avatar-rust"}`}
             >
-              {names[seat][0]}
+              {labels[seat][0]}
+              {(presence[seat]?.bot || presence[seat]?.connected === false) && (
+                <span
+                  className="presence-badge"
+                  aria-label={
+                    presence[seat]?.bot ? "Управляет бот" : "Нет связи"
+                  }
+                >
+                  {presence[seat]?.bot ? "Б" : "!"}
+                </span>
+              )}
               {seat === "NORTH" && !bidding && (
                 <span className="partner-badge">
                   <Icon name="link" />
@@ -51,8 +72,16 @@ export function Players({
               )}
             </div>
             <div className="player-label">
-              {names[seat]}
-              <span>{seat === "NORTH" ? "Партнёр" : "Соперник"}</span>
+              {labels[seat]}
+              <span>
+                {presence[seat]?.bot
+                  ? "Бот"
+                  : presence[seat]?.connected === false
+                    ? "Нет связи"
+                    : seat === "NORTH"
+                      ? "Партнёр"
+                      : "Соперник"}
+              </span>
             </div>
             {bidding ? (
               <b>
@@ -90,12 +119,20 @@ export default function Table({
   onCoach,
   onMenu,
   onDeclarations,
+  labels = names,
+  online = false,
+  status,
+  presence,
 }: {
   view: PlayerView;
   onPlay: (card: Card) => void;
   onCoach: () => void;
   onMenu: () => void;
   onDeclarations: () => void;
+  labels?: Record<Seat, string>;
+  online?: boolean;
+  status?: ReactNode;
+  presence?: PlayerPresence;
 }) {
   const legal = new Set(view.options.cards.map(cardKey));
   const current = view.trick.length
@@ -163,7 +200,7 @@ export default function Table({
               </span>
             </div>
           </div>
-          <Players view={view} />
+          <Players view={view} labels={labels} presence={presence} />
           {decl && (
             <button className="declarations-button" onClick={onDeclarations}>
               Объявления
@@ -174,7 +211,7 @@ export default function Table({
             <p>Базар блот</p>
           </div>
           <div className="trick">
-            <TrickCards plays={current} />
+            <TrickCards plays={current} labels={labels} />
           </div>
           <div className="turn-prompt" role="status">
             <span className="turn-dot" />
@@ -182,11 +219,11 @@ export default function Table({
               ? "Раздача завершена"
               : view.turn === "SOUTH"
                 ? "Ваш ход"
-                : `Ход: ${names[view.turn]}`}
+                : `Ход: ${labels[view.turn]}`}
           </div>
           {decl && (
             <div className="declaration-note">
-              {names[decl.seat ?? "SOUTH"]}:{" "}
+              {labels[decl.seat ?? "SOUTH"]}:{" "}
               {decl.kind === "REBLOT"
                 ? "реблот"
                 : decl.announcement?.kind === "FOUR_EIGHTS"
@@ -196,6 +233,7 @@ export default function Table({
                     : "показ комбинаций"}
             </div>
           )}
+          {status && <div className="online-status">{status}</div>}
           <div
             className="hand"
             aria-label="Ваши карты"
@@ -233,8 +271,10 @@ export default function Table({
         </div>
         <div className="coach-messages">
           <p className="coach-status">
-            Откройте чат, чтобы обсудить текущий момент. В офлайн-игре боты
-            будут ждать.
+            Откройте чат, чтобы обсудить текущий момент.{" "}
+            {online
+              ? "В онлайн-партии игра продолжается."
+              : "В офлайн-игре боты будут ждать."}
           </p>
           <p className="coach-status">Сервис AI пока не подключён.</p>
         </div>

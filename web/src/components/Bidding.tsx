@@ -1,5 +1,11 @@
-import { useEffect, useState, type CSSProperties } from "react";
-import type { Action, PlayerView, Suit } from "../lib/types";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import type {
+  Action,
+  PlayerView,
+  Suit,
+  Seat,
+  PlayerPresence,
+} from "../lib/types";
 import { SUITS, symbols, suitNames, names, cardKey } from "../lib/types";
 import Icon from "./Icon";
 import PlayingCard from "./PlayingCard";
@@ -9,11 +15,17 @@ export default function Bidding({
   onAction,
   onCoach,
   onMenu,
+  labels = names,
+  status,
+  presence,
 }: {
   view: PlayerView;
   onAction: (a: Action) => void;
   onCoach: () => void;
   onMenu: () => void;
+  labels?: Record<Seat, string>;
+  status?: ReactNode;
+  presence?: PlayerPresence;
 }) {
   const [suit, setSuit] = useState<Suit | null>("HEARTS"),
     [amount, setAmount] = useState(8),
@@ -47,7 +59,7 @@ export default function Bidding({
           <h1>{view.phase === "REDOUBLE" ? "Ответ на контру" : "Торговля"}</h1>
           <span>Раздача {view.dealNumber}</span>
         </div>
-        <Players view={view} bidding />
+        <Players view={view} bidding labels={labels} presence={presence} />
         <div className="current-bid">
           <span>{c ? "Текущая заявка" : "Заявок пока нет"}</span>
           <strong>
@@ -60,20 +72,21 @@ export default function Bidding({
               ))}
           </strong>
           <p>
-            {c ? names[c.bidder] : ""}
+            {c ? labels[c.bidder] : ""}
             {view.auction.multiplier > 1
               ? ` · ×${view.auction.multiplier}`
               : ""}
             {c?.promisedCaput ? " · капут" : ""}
           </p>
         </div>
+        {status && <div className="online-status">{status}</div>}
         <div className="bid-your-turn">
           <span className="turn-dot" />
           {view.phase === "REDOUBLE"
             ? "Команда отвечает на контру"
             : view.auction.turn === "SOUTH"
               ? "Ваша очередь"
-              : `Слово: ${names[view.auction.turn]}`}
+              : `Слово: ${labels[view.auction.turn]}`}
         </div>
         <div
           className="bid-hand"

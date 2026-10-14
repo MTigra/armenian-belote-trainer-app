@@ -1,8 +1,14 @@
-import type { PlayedCard } from "../lib/types";
+import type { PlayedCard, Seat } from "../lib/types";
 import { names } from "../lib/types";
 import PlayingCard from "./PlayingCard";
 
-export default function TrickCards({ plays }: { plays: PlayedCard[] }) {
+export default function TrickCards({
+  plays,
+  labels = names,
+}: {
+  plays: PlayedCard[];
+  labels?: Record<Seat, string>;
+}) {
   return (
     <div className="trick-cards" role="group" aria-label="Карты на столе">
       {plays.map(({ seat, card }) => (
@@ -11,7 +17,7 @@ export default function TrickCards({ plays }: { plays: PlayedCard[] }) {
           data-seat={seat}
           key={seat}
           role="group"
-          aria-label={`Карта: ${names[seat]}`}
+          aria-label={`Карта: ${labels[seat]}`}
         >
           <PlayingCard card={card} />
         </div>

@@ -1,5 +1,8 @@
 {
-  "name": "armenian-blot", "private": true, "version": "0.1.0", "packageManager": "pnpm@11.25.0",
+  "name": "armenian-blot",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.25.0",
   "scripts": {
     "engine:build": "node scripts/build-engine.mjs",
     "dev": "pnpm engine:build && pnpm --filter @blot/web dev",
@@ -7,6 +10,7 @@
     "build": "pnpm engine:build && pnpm --filter @blot/web build",
     "test": "pnpm --filter @blot/web test",
     "test:e2e": "pnpm --filter @blot/web test:e2e",
-    "typecheck": "pnpm --filter @blot/web typecheck"
+    "typecheck": "pnpm --filter @blot/web typecheck",
+    "dev:online": "pnpm engine:build && node scripts/dev-online.mjs"
   }
 }

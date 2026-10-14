@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { SavedMatch, PlayerView } from "../lib/types";
 import { SEATS, names, cardKey, symbols } from "../lib/types";
 import { replayAt, stateOf, viewOf } from "../lib/engine";
+import { ownTotals, presentView, relativeSeat } from "../lib/presentation";
 import { downloadMatch } from "../lib/transfer";
 import Icon from "./Icon";
 import PlayingCard from "./PlayingCard";
@@ -24,13 +25,29 @@ export default function Review({
     [match.record, cursor],
   );
   const state = useMemo(() => stateOf(snapshot), [snapshot]);
-  const view = useMemo(() => viewOf(snapshot), [snapshot]);
+  const rawView = useMemo(
+    () => viewOf(snapshot, match.seat ?? "SOUTH"),
+    [snapshot, match.seat],
+  );
+  const view = useMemo(() => presentView(rawView), [rawView]);
+  const actualNames = {
+    ...names,
+    ...match.players,
+    [match.seat ?? "SOUTH"]: "Вы",
+  };
+  const labels = Object.fromEntries(
+    SEATS.map((seat) => [
+      relativeSeat(seat, match.seat ?? "SOUTH"),
+      actualNames[seat],
+    ]),
+  ) as typeof names;
+  const score = ownTotals(match.scores, match.seat ?? "SOUTH");
   const action = match.record.actions[cursor - 1];
   const plays = view.trick.length
     ? view.trick
     : (view.tricks.at(-1)?.plays ?? []);
   const description = action
-    ? `${names[action.seat]}: ${action.type === "play" ? `${symbols[action.card.suit]} ${action.card.rank}` : action.type === "bid" ? `заявка ${action.amount} ${action.trump ? symbols[action.trump] : "бой"}` : action.type === "pass" ? "пас" : action.type === "double" ? "контра" : action.type === "redouble" ? "реконтра" : "без реконтры"}`
+    ? `${actualNames[action.seat]}: ${action.type === "play" ? `${symbols[action.card.suit]} ${action.card.rank}` : action.type === "bid" ? `заявка ${action.amount} ${action.trump ? symbols[action.trump] : "бой"}` : action.type === "pass" ? "пас" : action.type === "double" ? "контра" : action.type === "redouble" ? "реконтра" : "без реконтры"}`
     : "Начало матча";
   return (
     <section className="view active">
@@ -49,18 +66,21 @@ export default function Review({
           <div className="review-summary">
             <span className="review-kicker">Разбор матча</span>
             <h2>
-              {match.scores.northSouth}
+              {score.northSouth}
               <span>:</span>
-              {match.scores.eastWest}
+              {score.eastWest}
             </h2>
             <p>
-              Вы и Давид <span>против Нарека и Мариам</span>
+              {labels.SOUTH} и {labels.NORTH}{" "}
+              <span>
+                против {labels.WEST} и {labels.EAST}
+              </span>
             </p>
           </div>
           <div className="review-snapshot">
             <div className="snapshot-top">
               <span>
-                Раздача {view.dealNumber} · {names[view.turn]}
+                Раздача {view.dealNumber} · {labels[view.turn]}
               </span>
               <span>
                 {view.auction.contract
@@ -69,7 +89,7 @@ export default function Review({
               </span>
             </div>
             <div className="snapshot-cards">
-              <TrickCards plays={plays} />
+              <TrickCards plays={plays} labels={labels} />
             </div>
             <p>{description}</p>
           </div>
@@ -117,9 +137,9 @@ export default function Review({
             Полная раскладка завершённого матча
           </label>
           <div className="review-hands">
-            {(full ? SEATS : (["SOUTH"] as const)).map((seat) => (
+            {(full ? SEATS : ([match.seat ?? "SOUTH"] as const)).map((seat) => (
               <div key={seat}>
-                <strong>{names[seat]}</strong>
+                <strong>{actualNames[seat]}</strong>
                 <div>
                   {state.hands[seat].map((c) => (
                     <PlayingCard key={cardKey(c)} card={c} />
@@ -130,7 +150,7 @@ export default function Review({
           </div>
           <button
             className="review-coach-button"
-            onClick={() => onCoach(view, cursor)}
+            onClick={() => onCoach(rawView, cursor)}
           >
             <Icon name="spark" />
             Обсудить этот момент

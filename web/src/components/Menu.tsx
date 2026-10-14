@@ -8,6 +8,9 @@ export default function Menu({
   onJoin,
   onHistory,
   onHelp,
+  onlineActive = false,
+  onOnlineContinue,
+  nickname = "Гость",
 }: {
   active: Session | null;
   onContinue: () => void;
@@ -15,13 +18,16 @@ export default function Menu({
   onJoin: () => void;
   onHistory: () => void;
   onHelp: () => void;
+  onlineActive?: boolean;
+  onOnlineContinue?: () => void;
+  nickname?: string;
 }) {
   return (
     <section aria-label="Главное меню" className="view active">
       <div className="main-menu">
         <div className="menu-profile">
-          <span className="profile-avatar">А</span>
-          <span>Арам</span>
+          <span className="profile-avatar">{Array.from(nickname)[0]}</span>
+          <span>{nickname}</span>
           <button className="icon-button" onClick={onHelp} aria-label="Об игре">
             <Icon name="book" />
           </button>
@@ -37,6 +43,13 @@ export default function Menu({
           <PlayingCard card={{ suit: "DIAMONDS", rank: "ACE" }} />
         </div>
         <div className="menu-actions">
+          {onlineActive && (
+            <button className="continue-button" onClick={onOnlineContinue}>
+              <Icon name="players" />
+              Вернуться за стол
+              <Icon name="arrow" />
+            </button>
+          )}
           {active && (
             <button className="continue-button" onClick={onContinue}>
               <Icon name="cards" />

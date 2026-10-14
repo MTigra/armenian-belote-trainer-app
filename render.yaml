@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: armenian-blot
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: PUBLIC_ORIGINS
+        value: https://mtigra.github.io

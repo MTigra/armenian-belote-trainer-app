@@ -1,4 +1,7 @@
 export type Seat = "SOUTH" | "WEST" | "NORTH" | "EAST";
+export type PlayerPresence = Partial<
+  Record<Seat, { connected: boolean; bot: boolean }>
+>;
 export type Suit = "SPADES" | "HEARTS" | "DIAMONDS" | "CLUBS";
 export type Rank =
   | "SEVEN"
@@ -153,6 +156,10 @@ export interface Session {
   chat: ChatMessage[];
 }
 export interface SavedMatch {
+  seat?: Seat;
+  players?: Record<Seat, string>;
+  source?: "online";
+  timerSeconds?: number | null;
   id: string;
   createdAt: number;
   finishedAt: number;

@@ -13,10 +13,13 @@ import Review from "./components/Review";
 import Modal from "./components/Modal";
 import Icon from "./components/Icon";
 import Announcements from "./components/Announcements";
-type Screen = "menu" | "game" | "join" | "history" | "review";
+import OnlineGame from "./components/OnlineGame";
+import { useOnlineGame } from "./lib/useOnlineGame";
+import { playerNames } from "./lib/presentation";
+type Screen = "menu" | "game" | "online" | "join" | "history" | "review";
 const screenFromHash = (): Screen => {
   const hash = location.hash.slice(1).replace(/-coach$/, "");
-  return ["game", "join", "history", "review"].includes(hash)
+  return ["game", "online", "join", "history", "review"].includes(hash)
     ? (hash as Screen)
     : "menu";
 };
@@ -29,6 +32,7 @@ export default function App() {
       view: PlayerView;
       cursor: number;
       review: boolean;
+      online?: boolean;
     } | null>(null),
     [review, setReview] = useState<SavedMatch | null>(null);
   const [trainerCode, setTrainerCode] = useState("");
@@ -39,6 +43,7 @@ export default function App() {
     screen === "game",
     modal !== null || coach !== null || resumeCoach,
   );
+  const online = useOnlineGame(game.addMatch);
   useEffect(() => {
     if (resumeCoach && game.ready && game.view) {
       setCoach({
@@ -54,8 +59,17 @@ export default function App() {
     game.view?.phase === "BIDDING" || game.view?.phase === "REDOUBLE";
   useEffect(() => {
     document.body.dataset.view =
-      screen === "game" ? (bidding ? "bid" : "table") : screen;
-  }, [screen, bidding]);
+      screen === "game"
+        ? bidding
+          ? "bid"
+          : "table"
+        : screen === "online"
+          ? online.snapshot?.view?.phase === "BIDDING" ||
+            online.snapshot?.view?.phase === "REDOUBLE"
+            ? "bid"
+            : "table"
+          : screen;
+  }, [screen, bidding, online.snapshot?.view?.phase]);
   useEffect(() => {
     if (game.ready && screen === "game" && !game.session) setScreen("menu");
     if (game.ready && screen === "review" && !review) setScreen("history");
@@ -82,9 +96,10 @@ export default function App() {
     v = game.view,
     cursor = game.state?.actions.length ?? 0,
     isReview = false,
+    isOnline = false,
   ) {
     if (!v) return;
-    setCoach({ view: v, cursor, review: isReview });
+    setCoach({ view: v, cursor, review: isReview, online: isOnline });
     history.pushState({ screen, coach: true }, "", `#${screen}-coach`);
   }
   function training() {
@@ -96,6 +111,10 @@ export default function App() {
     }
   }
   function chatMessage(message: ChatMessage) {
+    if (coach?.online) {
+      online.message(message);
+      return;
+    }
     if (coach?.review && review) {
       const updated = { ...review, chat: [...review.chat, message] };
       setReview(updated);
@@ -130,6 +149,18 @@ export default function App() {
   return (
     <div className="app-shell">
       <main>
+        {(screen === "online" || screen === "join") && online.error && (
+          <div className="error-banner" role="alert">
+            <span>{online.error}</span>
+            <button
+              className="icon-button"
+              onClick={() => online.setError("")}
+              aria-label="Скрыть сообщение"
+            >
+              <Icon name="close" />
+            </button>
+          </div>
+        )}
         {game.error && (
           <div className="error-banner" role="alert">
             <span>{game.error}</span>
@@ -156,10 +187,29 @@ export default function App() {
                 onJoin={() => go("join")}
                 onHistory={() => go("history")}
                 onHelp={() => setModal("help")}
+                onlineActive={
+                  Boolean(
+                    online.snapshot && online.snapshot.status !== "FINISHED",
+                  ) || Boolean(online.guest?.tableCode)
+                }
+                onOnlineContinue={() => go("online")}
+                nickname={online.guest?.nickname}
               />
             )}
             {screen === "join" && (
-              <Connection onBack={() => go("menu")} onTraining={training} />
+              <Connection
+                game={online}
+                onBack={() => go("menu")}
+                onTraining={training}
+                onEntered={() => go("online")}
+              />
+            )}
+            {screen === "online" && (
+              <OnlineGame
+                game={online}
+                onBack={() => go("menu")}
+                onCoach={(view, cursor) => openCoach(view, cursor, false, true)}
+              />
             )}
             {screen === "history" && (
               <History
@@ -339,8 +389,8 @@ export default function App() {
             </p>
             <p>
               Офлайн-тренировка работает на общем движке. Боты совершают
-              разрешённые действия. Онлайн-сервер и AI-тренер пока не
-              подключены.
+              разрешённые действия. Онлайн-партии работают через Ktor-сервер.
+              AI-тренер пока не подключён.
             </p>
           </Modal>
         )}
@@ -370,15 +420,33 @@ export default function App() {
         )}
         {coach && (
           <Coach
-            view={coach.view}
-            actionIndex={coach.cursor}
+            view={
+              coach.online ? (online.snapshot?.view ?? coach.view) : coach.view
+            }
+            actionIndex={
+              coach.online
+                ? (online.snapshot?.actionCount ?? coach.cursor)
+                : coach.cursor
+            }
             messages={
-              coach.review ? (review?.chat ?? []) : (game.session?.chat ?? [])
+              coach.online
+                ? online.chat
+                : coach.review
+                  ? (review?.chat ?? [])
+                  : (game.session?.chat ?? [])
             }
             onMessage={chatMessage}
             onClose={closeCoach}
             code={trainerCode}
             onCode={setTrainerCode}
+            online={Boolean(coach.online)}
+            labels={
+              coach.online && online.snapshot
+                ? playerNames(online.snapshot, false)
+                : review && coach.review
+                  ? review.players
+                  : undefined
+            }
           />
         )}
         <div className="sr-only" aria-live="polite">

@@ -96,3 +96,30 @@ export function setPreference(name: string, value: string): void {
     /* Preferences must not block gameplay. */
   }
 }
+
+/** Online dialogue uses a separate key and never replaces the offline snapshot. */
+export async function loadOnlineChat(
+  id: string,
+): Promise<import("./types").ChatMessage[]> {
+  const database = await db();
+  return new Promise((resolve, reject) => {
+    const request = database
+      .transaction("active")
+      .objectStore("active")
+      .get(`online-chat:${id}`);
+    request.onsuccess = () => resolve(request.result?.chat ?? []);
+    request.onerror = () => reject(request.error);
+  });
+}
+export const saveOnlineChat = (
+  id: string,
+  chat: import("./types").ChatMessage[],
+) =>
+  write(["active"], (transaction) => {
+    transaction.objectStore("active").put({ chat }, `online-chat:${id}`);
+  });
+export const finishOnlineMatch = (match: SavedMatch) =>
+  write(["active", "matches"], (transaction) => {
+    transaction.objectStore("matches").put(match);
+    transaction.objectStore("active").delete(`online-chat:${match.id}`);
+  });

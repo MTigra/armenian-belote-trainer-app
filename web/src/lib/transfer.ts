@@ -1,4 +1,5 @@
-import type { SavedMatch, ChatMessage } from "./types";
+import { SEATS } from "./types";
+import type { SavedMatch, ChatMessage, Seat } from "./types";
 import { validateRecord, PROFILE } from "./engine";
 export function exportMatch(match: SavedMatch): string {
   return JSON.stringify(
@@ -54,6 +55,23 @@ export function importMatch(text: string): SavedMatch {
     createdAt: Number.isFinite(source.createdAt)
       ? source.createdAt
       : Date.now(),
+    ...(SEATS.includes(source.seat) ? { seat: source.seat as Seat } : {}),
+    ...(source.source === "online" ? { source: "online" as const } : {}),
+    ...(source.players &&
+    SEATS.every(
+      (seat) =>
+        typeof source.players[seat] === "string" &&
+        source.players[seat].length <= 32,
+    )
+      ? {
+          players: Object.fromEntries(
+            SEATS.map((seat) => [seat, source.players[seat]]),
+          ) as Record<Seat, string>,
+        }
+      : {}),
+    ...([null, 30, 60, 120].includes(source.timerSeconds)
+      ? { timerSeconds: source.timerSeconds }
+      : {}),
     finishedAt: Number.isFinite(source.finishedAt)
       ? source.finishedAt
       : Date.now(),

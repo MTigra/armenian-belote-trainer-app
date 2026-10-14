@@ -3644,3 +3644,169 @@ main {
     transform: none;
   }
 }
+
+/* Online lobby and connection status use the same felt and quiet controls as the game. */
+.connection-form select,
+.server-settings input {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid #6c856f55;
+  border-radius: 7px;
+  background: #13382b;
+  color: var(--cream);
+}
+.connection-note {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.server-settings {
+  margin: 16px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.server-settings summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.online-lobby {
+  max-width: 680px;
+  margin: auto;
+}
+.lobby-room {
+  padding: 28px;
+  margin-top: 18px;
+  background: #194b39;
+  border: 1px solid #376854;
+  border-radius: 20px;
+}
+.lobby-room h1 {
+  font: 26px Georgia;
+  color: var(--cream);
+}
+.lobby-room p {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.room-code {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.room-code strong {
+  font-size: 36px;
+  letter-spacing: 5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+}
+.lobby-teams {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 24px 0;
+}
+.lobby-teams h2 {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gold);
+  margin-bottom: 12px;
+}
+.lobby-place {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  min-height: 92px;
+  padding: 14px;
+  margin-bottom: 8px;
+  background: #113f31;
+  border: 1px solid #b4c5b329;
+  border-radius: 9px;
+  gap: 8px;
+  text-align: left;
+}
+.lobby-place:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.lobby-place span,
+.lobby-place small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.lobby-place strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  color: var(--cream);
+}
+.lobby-place.your-place {
+  border-color: var(--gold);
+}
+.online-status {
+  position: absolute;
+  bottom: 7px;
+  right: 14px;
+  color: #c5d4c0;
+  font-size: 10px;
+  pointer-events: none;
+}
+.bid-table .online-status {
+  top: 70px;
+  left: 17px;
+  bottom: auto;
+  right: auto;
+}
+@media (max-width: 520px) {
+  .lobby-room {
+    padding: 18px;
+  }
+  .lobby-teams {
+    gap: 10px;
+  }
+  .lobby-place {
+    padding: 10px;
+  }
+  .room-code strong {
+    font-size: 30px;
+    letter-spacing: 3px;
+  }
+}
+@media (max-height: 540px) and (orientation: landscape) {
+  .game-board .online-status {
+    left: 152px;
+    top: 111px;
+    right: auto;
+    bottom: auto;
+  }
+}
+@media (max-height: 360px) and (orientation: landscape) {
+  .game-board .online-status {
+    left: 14px;
+    top: 218px;
+  }
+}
+.presence-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--gold);
+  color: #173b2a;
+  font: bold 11px Arial;
+}
+[data-connection="waiting"] .avatar {
+  opacity: 0.65;
+}
+[data-connection="bot"] .avatar {
+  border-style: dashed;
+}

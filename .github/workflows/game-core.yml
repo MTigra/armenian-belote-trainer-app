@@ -2,6 +2,7 @@ name: Game rules
 on:
   push:
     branches-ignore: [gh-pages]
+    paths-ignore: ['docs/**', 'skills/**', 'previews/**', '*.md']
   pull_request:
 permissions:
   contents: read
@@ -16,14 +17,15 @@ jobs:
           java-version: '21'
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '24.19.0'
       - uses: gradle/actions/setup-gradle@v4
       - name: Run common criteria on JVM and JavaScript
-        run: ./gradlew :game-core:jvmTest :game-core:jsNodeTest -PuseSystemNode=true
+        run: ./gradlew :game-core:jvmTest :game-core:jsNodeTest :server:test -PuseSystemNode=true
       - name: Build and exercise the JavaScript package
         run: |
           ./gradlew :game-core:jsNodeProductionLibraryDistribution -PuseSystemNode=true
           node game-core/scripts/smoke-js.mjs
+          ./gradlew :server:installDist
       - uses: pnpm/action-setup@v4
         with:
           version: 11.25.0
@@ -35,6 +37,14 @@ jobs:
           pnpm test
           pnpm --filter @blot/web build
           pnpm --filter @blot/web exec playwright install --with-deps chromium
+          WEB_ROOT=/tmp/blot-no-web server/build/install/server/bin/server > /tmp/blot-server.log 2>&1 &
+          BLOT_SERVER_PID=$!
+          trap 'kill "$BLOT_SERVER_PID" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8080/api/health >/dev/null && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/api/health >/dev/null
           pnpm test:e2e
       - name: Save web test traces
         if: always()
@@ -48,3 +58,26 @@ jobs:
         with:
           name: game-core-tests
           path: game-core/build/reports/tests/
+      - name: Save server test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-tests
+          path: server/build/reports/tests/
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the deployable image
+        run: docker build -t blot-online .
+      - name: Check API and bundled web client
+        run: |
+          docker run -d --name blot-online -p 8080:8080 -e PUBLIC_ORIGIN=http://127.0.0.1:8080 blot-online
+          trap 'docker logs blot-online; docker rm -f blot-online' EXIT
+          for attempt in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8080/api/health >/dev/null && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/api/health
+          curl -fsS http://127.0.0.1:8080/ | grep 'Базар блот'
+          curl -fsS http://127.0.0.1:8080/manifest.webmanifest

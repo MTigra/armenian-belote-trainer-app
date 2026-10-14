@@ -1,13 +1,15 @@
-import type { PlayerView } from "../lib/types";
+import type { PlayerView, Seat } from "../lib/types";
 import { dealEvents, names, ranks, cardKey } from "../lib/types";
 import PlayingCard from "./PlayingCard";
 import Modal from "./Modal";
 export default function Announcements({
   view,
   onClose,
+  labels = names,
 }: {
   view: PlayerView;
   onClose: () => void;
+  labels?: Record<Seat, string>;
 }) {
   const events = dealEvents(view.events),
     announced = events.filter((e) => e.announcement),
@@ -20,7 +22,7 @@ export default function Announcements({
         const cards = shown.filter((d) => d.owner === a.owner);
         return (
           <div className="announcement-row" key={index}>
-            <strong>{names[a.owner]}</strong>
+            <strong>{labels[a.owner]}</strong>
             <p>
               {a.kind === "FOUR_EIGHTS"
                 ? "Четыре восьмёрки"
@@ -49,7 +51,7 @@ export default function Announcements({
         .filter((e) => e.kind === "BLOT" || e.kind === "REBLOT")
         .map((e, i) => (
           <p key={i}>
-            {names[e.seat ?? "SOUTH"]}: {e.kind === "BLOT" ? "блот" : "реблот"}
+            {labels[e.seat ?? "SOUTH"]}: {e.kind === "BLOT" ? "блот" : "реблот"}
           </p>
         ))}
     </Modal>

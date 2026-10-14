@@ -60,6 +60,9 @@ export default defineConfig({
       },
     },
   },
-  server: { fs: { allow: [fileURLToPath(new URL("..", import.meta.url))] } },
+  server: {
+    fs: { allow: [fileURLToPath(new URL("..", import.meta.url))] },
+    proxy: { "/api": { target: "http://127.0.0.1:8080", ws: true } },
+  },
   test: { include: ["src/**/*.test.ts"], environment: "node" },
 });

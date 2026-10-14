@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import type { SavedMatch } from "../lib/types";
+import { ownTotals } from "../lib/presentation";
 import Icon from "./Icon";
 export default function History({
   matches,
@@ -89,14 +90,19 @@ export default function History({
                 <small>Тренировка · {m.record.setups.length} сдач</small>
               </span>
               <span className="match-score">
-                {m.scores.northSouth}
+                {ownTotals(m.scores, m.seat ?? "SOUTH").northSouth}
                 <span>:</span>
-                {m.scores.eastWest}
+                {ownTotals(m.scores, m.seat ?? "SOUTH").eastWest}
               </span>
               <span
-                className={`match-result ${m.winner === "NORTH_SOUTH" ? "" : "loss"}`}
+                className={`match-result ${m.winner === (m.seat === "WEST" || m.seat === "EAST" ? "EAST_WEST" : "NORTH_SOUTH") ? "" : "loss"}`}
               >
-                {m.winner === "NORTH_SOUTH" ? "Победа" : "Поражение"}
+                {m.winner ===
+                (m.seat === "WEST" || m.seat === "EAST"
+                  ? "EAST_WEST"
+                  : "NORTH_SOUTH")
+                  ? "Победа"
+                  : "Поражение"}
               </span>
               <Icon name="arrow" />
             </button>
