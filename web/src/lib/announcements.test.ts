@@ -9,7 +9,7 @@ it("renders only public summaries before showing and only disclosed cards afterw
     let s = newSession(seed, "SOUTH").snapshot;
     s = act(s, { type: "bid", seat: "WEST", amount: 8, trump: "HEARTS" });
     for (let i = 0; i < 4; i++) s = auto(s, viewOf(s).auction.turn);
-    for (let i = 0; i < 4; i++) s = auto(s, viewOf(s).turn);
+    while (viewOf(s).tricks.length < 1) s = auto(s, viewOf(s).turn);
     if (viewOf(s).events.some((e) => e.announcement)) {
       snapshot = s;
       break;

@@ -69,7 +69,17 @@ test("real auction, legal hand, pause for coach, AI failure and exact reload con
     page.getByRole("dialog", { name: "Чат с тренером" }),
   ).not.toBeVisible();
   await expect
-    .poll(async () => page.locator(".hand button:enabled").count())
+    .poll(async () => {
+      if (
+        await page
+          .getByRole("button", { name: "Показать объявления", exact: true })
+          .isVisible()
+      )
+        await page
+          .getByRole("button", { name: "Показать объявления", exact: true })
+          .click();
+      return page.locator(".hand button:enabled").count();
+    })
     .toBeGreaterThan(0);
   expect(await page.locator(".hand button").count()).toBeGreaterThan(0);
   await page
@@ -106,7 +116,15 @@ test("complete a genuine match, save history, export, import and replay", async 
   ) {
     if (Date.now() > limit) throw new Error("Match did not finish");
     const playable = page.locator(".hand button:enabled");
-    if (await playable.count()) {
+    if (
+      await page
+        .getByRole("button", { name: "Показать объявления", exact: true })
+        .isVisible()
+    ) {
+      await page
+        .getByRole("button", { name: "Показать объявления", exact: true })
+        .click();
+    } else if (await playable.count()) {
       await playable.first().click({ position: { x: 10, y: 16 } });
     } else await page.waitForTimeout(200);
   }
@@ -182,17 +200,16 @@ async function checkFan(page: Page, selector: string, count: number) {
       .getBoundingClientRect();
     const cards = [...element.querySelectorAll(".playing-card")].map((card) => {
       const rect = card.getBoundingClientRect();
-      const corner = card.querySelector(".corner")!;
-      const index = corner.getBoundingClientRect();
+      const face = card.querySelector<HTMLImageElement>(".card-face")!;
+      const index = face.getBoundingClientRect();
       return {
         left: rect.left,
         right: rect.right,
         top: rect.top,
         bottom: rect.bottom,
-        rankSize: parseFloat(getComputedStyle(corner).fontSize),
-        suitSize: parseFloat(
-          getComputedStyle(corner.querySelector("small")!).fontSize,
-        ),
+        imageLoaded: face.complete && face.naturalWidth > 0,
+        opaque: getComputedStyle(card).opacity,
+        source: face.src,
         indexTop: index.top,
       };
     });
@@ -213,27 +230,33 @@ async function checkFan(page: Page, selector: string, count: number) {
     expect(card.left).toBeGreaterThanOrEqual(metrics.board.left);
     expect(card.right).toBeLessThanOrEqual(metrics.board.right);
     expect(card.bottom).toBeLessThanOrEqual(metrics.board.bottom);
-    expect(card.rankSize).toBeGreaterThanOrEqual(20);
-    expect(card.suitSize).toBeGreaterThanOrEqual(17);
+    expect(card.imageLoaded).toBe(true);
+    expect(card.opaque).toBe("1");
+    expect(card.source).toContain("/cards/");
   }
 }
 
 async function checkTrickSeats(page: Page) {
-  const positions = await page.locator(".trick-cards").evaluate((element) => {
-    const bounds = element.getBoundingClientRect();
-    return [...element.querySelectorAll<HTMLElement>(".trick-play")].map(
-      (card) => {
-        const rect = card.getBoundingClientRect();
-        const matrix = new DOMMatrixReadOnly(getComputedStyle(card).transform);
-        return {
-          seat: card.dataset.seat,
-          x: rect.left + rect.width / 2 - (bounds.left + bounds.width / 2),
-          y: rect.top + rect.height / 2 - (bounds.top + bounds.height / 2),
-          angle: Math.round((Math.atan2(matrix.b, matrix.a) * 180) / Math.PI),
-        };
-      },
-    );
-  });
+  const positions = await page
+    .getByRole("dialog", { name: "Последняя взятка" })
+    .locator(".trick-cards")
+    .evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return [...element.querySelectorAll<HTMLElement>(".trick-play")].map(
+        (card) => {
+          const rect = card.getBoundingClientRect();
+          const matrix = new DOMMatrixReadOnly(
+            getComputedStyle(card).transform,
+          );
+          return {
+            seat: card.dataset.seat,
+            x: rect.left + rect.width / 2 - (bounds.left + bounds.width / 2),
+            y: rect.top + rect.height / 2 - (bounds.top + bounds.height / 2),
+            angle: Math.round((Math.atan2(matrix.b, matrix.a) * 180) / Math.PI),
+          };
+        },
+      );
+    });
   expect(positions).toHaveLength(4);
   const seats = Object.fromEntries(positions.map((p) => [p.seat, p]));
   expect(seats.SOUTH.y).toBeGreaterThan(0);
@@ -258,7 +281,17 @@ test.describe("touch table", () => {
     }
     await closeAuction(page);
     await expect
-      .poll(() => page.locator(".hand button:enabled").count())
+      .poll(async () => {
+        if (
+          await page
+            .getByRole("button", { name: "Показать объявления", exact: true })
+            .isVisible()
+        )
+          await page
+            .getByRole("button", { name: "Показать объявления", exact: true })
+            .click();
+        return page.locator(".hand button:enabled").count();
+      })
       .toBeGreaterThan(0);
     for (const [width, height] of [
       [320, 740],
@@ -281,8 +314,15 @@ test.describe("touch table", () => {
     await expect(
       page.locator('.trick-play[data-seat="SOUTH"] .playing-card'),
     ).toHaveAttribute("aria-label", label!);
-    await expect(page.locator(".trick-play")).toHaveCount(4);
+    await expect(
+      page.getByRole("button", { name: "Последняя взятка", exact: true }),
+    ).toBeVisible();
+    await expect(page.locator(".trick-collection")).toHaveCount(0);
     await page.getByRole("button", { name: "Меню партии" }).click();
+    await page.getByRole("button", { name: "Вернуться к столу" }).click();
+    await page
+      .getByRole("button", { name: "Последняя взятка", exact: true })
+      .click();
     for (const [width, height] of [
       [320, 740],
       [390, 844],

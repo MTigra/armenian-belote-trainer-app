@@ -1,0 +1,9 @@
+SVG-cards by David Bellot and contributors, maintained by Henk de Beer.
+https://github.com/htdebeer/SVG-cards
+Source revision: 6d88bf9c594997b82bc5668ab0877a4e9b717665
+LGPL 2.1: see LICENSE and AUTHORS in this directory.
+These faces and suits are extracted adaptations with DejaVu Serif Bold
+indices converted to outlines (font license: FONT-LICENSE).
+Source and regeneration script:
+https://github.com/MTigra/armenian-belote-trainer-app/tree/main/assets/card-source
+https://github.com/MTigra/armenian-belote-trainer-app/blob/main/scripts/extract-card-images.py

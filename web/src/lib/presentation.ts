@@ -56,6 +56,14 @@ export function presentView(view: PlayerView): PlayerView {
     dealer: seat(view.dealer),
     turn: seat(view.turn),
     scores: totals(view.scores),
+    currentPoints: view.currentPoints ? totals(view.currentPoints) : undefined,
+    options: {
+      ...view.options,
+      declarationsToShow: view.options.declarationsToShow?.map((d) => ({
+        ...d,
+        owner: seat(d.owner),
+      })),
+    },
     handSizes: Object.fromEntries(
       SEATS.map((s) => [seat(s), view.handSizes[s]]),
     ) as Record<Seat, number>,

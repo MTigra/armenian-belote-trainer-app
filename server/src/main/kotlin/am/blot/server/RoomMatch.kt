@@ -45,5 +45,5 @@ internal class RoomMatch(seconds: Int?) {
         val delay = timing.botDelay.coerceAtLeast(if (current.trick.isEmpty() && current.tricks.isNotEmpty()) 1000 else 0)
         return requiredSeats(current).firstOrNull { members.botControls(it) && clock.botReady(it, now, delay) }
     }
-    fun automatic(seat: Seat, now: Long) = act(GameEngine.automaticAction(requireState(), seat), now)
+    fun automatic(seat: Seat, now: Long) = act(GameEngine.automaticAction(requireState(), seat, showDeclarations = clock.expired(now) != seat), now)
 }

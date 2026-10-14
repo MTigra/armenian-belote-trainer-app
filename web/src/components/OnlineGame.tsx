@@ -15,6 +15,7 @@ import Modal from "./Modal";
 import Announcements from "./Announcements";
 import OnlineStatus from "./OnlineStatus";
 import OnlineLobby from "./OnlineLobby";
+import { useResultReady } from "../lib/useResultReady";
 export default function OnlineGame({
   game,
   onBack,
@@ -27,6 +28,10 @@ export default function OnlineGame({
   const [menu, setMenu] = useState(false),
     [declarations, setDeclarations] = useState(false);
   const snapshot = game.snapshot;
+  const resultReady = useResultReady(
+    snapshot?.view?.phase,
+    snapshot?.view?.dealNumber,
+  );
   const [exported, setExported] = useState(false);
   useEffect(() => setExported(false), [snapshot?.id]);
   if (!snapshot)
@@ -57,6 +62,8 @@ export default function OnlineGame({
       mayDouble: false,
       mayRedouble: false,
       mayDeclineRedouble: false,
+      mayDeclare: false,
+      mayDeclineDeclarations: false,
     };
   const status = <OnlineStatus game={game} />;
   const terminal = [
@@ -90,10 +97,17 @@ export default function OnlineGame({
           labels={labels}
           presence={playerPresence(snapshot)}
           online
+          animate={game.connection === "connected"}
           status={status}
           onMenu={() => setMenu(true)}
           onCoach={() => onCoach(snapshot.view!, snapshot.actionCount)}
           onDeclarations={() => setDeclarations(true)}
+          onDeclarationChoice={(show) =>
+            game.command("action", {
+              type: show ? "declare" : "decline-declarations",
+              seat: snapshot.selfSeat,
+            })
+          }
           onPlay={(card) =>
             game.command("action", {
               type: "play",
@@ -134,7 +148,7 @@ export default function OnlineGame({
           onClose={() => setDeclarations(false)}
         />
       )}
-      {terminal && (
+      {terminal && resultReady && (
         <Modal title="Результат онлайн-раздачи" onClose={onBack}>
           <h2>
             {view.phase === "MATCH_FINISHED"

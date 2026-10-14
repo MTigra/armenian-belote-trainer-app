@@ -80,6 +80,9 @@ export interface Options {
   mayDouble: boolean;
   mayRedouble: boolean;
   mayDeclineRedouble: boolean;
+  mayDeclare?: boolean;
+  mayDeclineDeclarations?: boolean;
+  declarationsToShow?: Declaration[];
 }
 export interface PlayerView {
   profileVersion: string;
@@ -95,6 +98,7 @@ export interface PlayerView {
   trick: PlayedCard[];
   tricks: WonTrick[];
   scores: Totals;
+  currentPoints?: Totals;
   publicDeclarations: PublicDeclaration[];
   shownDeclarations: Declaration[];
   events: GameEvent[];
@@ -108,7 +112,16 @@ export type Action =
       trump: Suit | null;
       caput?: boolean;
     }
-  | { type: "pass" | "double" | "redouble" | "decline-redouble"; seat: Seat }
+  | {
+      type:
+        | "pass"
+        | "double"
+        | "redouble"
+        | "decline-redouble"
+        | "declare"
+        | "decline-declarations";
+      seat: Seat;
+    }
   | { type: "play"; seat: Seat; card: Card };
 export interface Setup {
   dealer: Seat;

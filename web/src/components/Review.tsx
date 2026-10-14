@@ -7,6 +7,7 @@ import { downloadMatch } from "../lib/transfer";
 import Icon from "./Icon";
 import PlayingCard from "./PlayingCard";
 import TrickCards from "./TrickCards";
+import SuitImage from "./SuitImage";
 export default function Review({
   match,
   onBack,
@@ -47,7 +48,7 @@ export default function Review({
     ? view.trick
     : (view.tricks.at(-1)?.plays ?? []);
   const description = action
-    ? `${actualNames[action.seat]}: ${action.type === "play" ? `${symbols[action.card.suit]} ${action.card.rank}` : action.type === "bid" ? `заявка ${action.amount} ${action.trump ? symbols[action.trump] : "бой"}` : action.type === "pass" ? "пас" : action.type === "double" ? "контра" : action.type === "redouble" ? "реконтра" : "без реконтры"}`
+    ? `${actualNames[action.seat]}: ${action.type === "play" ? `${symbols[action.card.suit]} ${action.card.rank}` : action.type === "bid" ? `заявка ${action.amount} ${action.trump ? symbols[action.trump] : "бой"}` : action.type === "pass" ? "пас" : action.type === "double" ? "контра" : action.type === "redouble" ? "реконтра" : action.type === "declare" ? "объявляет комбинации" : action.type === "decline-declarations" ? "не показывает объявления" : "без реконтры"}`
     : "Начало матча";
   return (
     <section className="view active">
@@ -83,9 +84,18 @@ export default function Review({
                 Раздача {view.dealNumber} · {labels[view.turn]}
               </span>
               <span>
-                {view.auction.contract
-                  ? `${view.auction.contract.amount} ${view.auction.contract.trump ? symbols[view.auction.contract.trump] : "бой"}`
-                  : "Торговля"}
+                {view.auction.contract ? (
+                  <>
+                    {view.auction.contract.amount}{" "}
+                    {view.auction.contract.trump ? (
+                      <SuitImage suit={view.auction.contract.trump} />
+                    ) : (
+                      "бой"
+                    )}
+                  </>
+                ) : (
+                  "Торговля"
+                )}
               </span>
             </div>
             <div className="snapshot-cards">

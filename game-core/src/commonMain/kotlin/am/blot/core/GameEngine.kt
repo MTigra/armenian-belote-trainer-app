@@ -2,13 +2,13 @@ package am.blot.core
 
 /** Immutable, synchronous rule transitions. Network ordering and timers are host responsibilities. */
 object GameEngine {
-    fun start(deck: List<Card>, dealer: Seat): GameState = fromHands(CardRules.deal(deck, dealer), dealer)
-    private fun fromHands(hands: Map<Seat, List<Card>>, dealer: Seat): GameState {
+    fun start(deck: List<Card>, dealer: Seat, profileVersion: String = PROFILE_VERSION): GameState = fromHands(CardRules.deal(deck, dealer), dealer, profileVersion)
+    private fun fromHands(hands: Map<Seat, List<Card>>, dealer: Seat, profileVersion: String): GameState {
         val frozen = Seat.entries.associateWith { hands.getValue(it).toList() }
-        return GameState(dealer = dealer, initialHands = frozen).also { validate(it) }
+        return GameState(profileVersion = profileVersion, dealer = dealer, initialHands = frozen).also { validate(it) }
     }
     fun options(state: GameState, seat: Seat): ActionOptions {
-        require(state.profileVersion == PROFILE_VERSION) { "Unsupported rules profile" }
+        require(supportedProfile(state.profileVersion)) { "Unsupported rules profile" }
         return when (state.phase) {
             Phase.BIDDING -> ActionOptions(
                 minimumBid = if (seat == state.auction.turn) (state.auction.contract?.amount?.toLong()?.plus(1) ?: 8L) else null,
@@ -18,8 +18,14 @@ object GameEngine {
             )
             Phase.REDOUBLE -> ActionOptions(mayRedouble = seat in state.auction.pendingRedouble,
                 mayDeclineRedouble = seat in state.auction.pendingRedouble)
-            Phase.PLAYING -> ActionOptions(cards = if (seat == state.turn)
-                CardRules.legalCards(state.hands.getValue(seat), seat, state.trick, state.auction.contract!!.trump) else emptyList())
+            Phase.PLAYING -> {
+                val deciding = seat == state.turn && state.profileVersion == PROFILE_VERSION &&
+                    state.tricks.isEmpty() && seat !in state.declarationDecisions && state.declarations.getValue(seat).isNotEmpty()
+                ActionOptions(cards = if (seat == state.turn && !deciding)
+                    CardRules.legalCards(state.hands.getValue(seat), seat, state.trick, state.auction.contract!!.trump) else emptyList(),
+                    mayDeclare = deciding, mayDeclineDeclarations = deciding,
+                    declarationsToShow = if (deciding) state.declarations.getValue(seat) else emptyList())
+            }
             else -> ActionOptions()
         }
     }
@@ -63,6 +69,18 @@ object GameEngine {
                 val declined = state.copy(auction = a, events = state.events + GameEvent(EventKind.DECLINE_REDOUBLE, action.seat))
                 if (a.pendingRedouble.isEmpty()) beginPlay(declined) else declined
             }
+            is Action.Declare -> {
+                require(o.mayDeclare) { "Cannot declare now" }
+                val trump = state.auction.contract!!.trump
+                val strongest = state.declarations.getValue(action.seat).maxWith { a, b -> DeclarationRules.compare(a, b, trump, state.dealer.next()) }
+                state.copy(declarationDecisions = state.declarationDecisions + action.seat, announced = state.announced + action.seat,
+                    events = state.events + GameEvent(EventKind.DECLARATION, action.seat, announcement = DeclarationRules.public(strongest, trump)))
+            }
+            is Action.DeclineDeclarations -> {
+                require(o.mayDeclineDeclarations) { "Cannot decline declarations now" }
+                state.copy(declarationDecisions = state.declarationDecisions + action.seat,
+                    events = state.events + GameEvent(EventKind.DECLARATION_DECLINED, action.seat))
+            }
             is Action.Play -> {
                 require(action.card in o.cards) { "Card is not a legal action" }
                 play(state, action)
@@ -81,7 +99,7 @@ object GameEngine {
         val trump = original.auction.contract!!.trump
         var state = original
         var events = state.events
-        if (state.tricks.isEmpty() && action.seat !in state.announced) {
+        if (state.profileVersion == LEGACY_PROFILE_VERSION && state.tricks.isEmpty() && action.seat !in state.announced) {
             val strongest = state.declarations.getValue(action.seat).maxWithOrNull { a, b -> DeclarationRules.compare(a, b, trump, state.dealer.next()) }
             if (strongest != null) events = events + GameEvent(EventKind.DECLARATION, action.seat,
                 announcement = DeclarationRules.public(strongest, trump))
@@ -140,7 +158,7 @@ object GameEngine {
     fun nextDeal(state: GameState, deck: List<Card>): GameState {
         validate(state)
         require(state.phase in listOf(Phase.REDEAL_REQUIRED, Phase.DEAL_FINISHED)) { "Cannot redeal during a live or finished match" }
-        val next = start(deck, state.dealer.next())
+        val next = start(deck, state.dealer.next(), state.profileVersion)
         val number = state.dealNumber + 1
         return next.copy(dealNumber = number, scores = state.scores,
             setups = state.setups + DealSetup(next.dealer, next.initialHands, state.actions.size), actions = state.actions,
@@ -153,26 +171,33 @@ object GameEngine {
             state.hands.getValue(seat).toList(), state.hands.mapValues { it.value.size }, state.turn, state.auction,
             state.trick, state.tricks, state.scores,
             state.events.mapNotNull { it.announcement },
-            state.events.mapNotNull { it.declaration }, state.events, options(state, seat))
+            state.events.mapNotNull { it.declaration }, state.events, options(state, seat), currentPoints(state))
+    }
+    fun currentPoints(state: GameState): Totals {
+        val cards = state.tricks.fold(Totals()) { total, trick -> total.add(trick.winner.team, trick.cardPoints.toLong()) }
+        val bonuses = if (state.auction.contract == null) emptyList() else eligibleDeclarations(state).filter { it.owner in state.shown }
+        return bonuses.fold(cards) { total, declaration -> total.add(declaration.owner.team, declaration.points.toLong()) }
+            .let { total -> state.blotCompleted.fold(total) { points, seat -> points.add(seat.team, 20) } }
     }
     /** A simple bot/timeout picks only from the actor's legal public options, never evaluates other hands. */
-    fun automaticAction(state: GameState, seat: Seat): Action {
+    fun automaticAction(state: GameState, seat: Seat, showDeclarations: Boolean = true): Action {
         val o = options(state, seat)
         return when {
             o.mayPass -> Action.Pass(seat)
             o.mayDeclineRedouble -> Action.DeclineRedouble(seat)
+            o.mayDeclare -> if (showDeclarations) Action.Declare(seat) else Action.DeclineDeclarations(seat)
             o.cards.isNotEmpty() -> Action.Play(seat, o.cards.first())
             else -> throw IllegalArgumentException("No automatic action for this seat")
         }
     }
     fun record(state: GameState): MatchRecord {
         require(state.phase == Phase.MATCH_FINISHED) { "Full match record is available only after completion" }
-        return MatchRecord(setups = state.setups, actions = state.actions)
+        return MatchRecord(profileVersion = state.profileVersion, setups = state.setups, actions = state.actions)
     }
     fun replay(record: MatchRecord): GameState {
-        require(record.formatVersion == 1 && record.profileVersion == PROFILE_VERSION) { "Unsupported replay version" }
+        require(record.formatVersion == 1 && supportedProfile(record.profileVersion)) { "Unsupported replay version" }
         require(record.setups.isNotEmpty() && record.setups.first().actionOffset == 0)
-        var state = fromHands(record.setups.first().hands, record.setups.first().dealer)
+        var state = fromHands(record.setups.first().hands, record.setups.first().dealer, record.profileVersion)
         var setupIndex = 1
         for (i in 0..record.actions.size) {
             if (setupIndex < record.setups.size && record.setups[setupIndex].actionOffset == i) {
@@ -190,7 +215,7 @@ object GameEngine {
     }
     /** Card conservation is checked after every transition and when restoring a snapshot. */
     fun validate(state: GameState) {
-        require(state.profileVersion == PROFILE_VERSION && state.target == 301) { "Unsupported profile or target" }
+        require(supportedProfile(state.profileVersion) && state.target == 301) { "Unsupported profile or target" }
         val seats = Seat.entries.toSet()
         require(state.initialHands.keys == seats && state.hands.keys == seats)
         require(state.initialHands.values.all { it.size == 8 })

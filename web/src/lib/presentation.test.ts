@@ -21,12 +21,13 @@ describe("online perspective", () => {
       });
       for (let index = 0; index < 4; index++)
         snapshot = auto(snapshot, viewOf(snapshot).auction.turn);
-      for (let index = 0; index < 4; index++)
+      while (viewOf(snapshot).tricks.length < 1)
         snapshot = auto(snapshot, viewOf(snapshot).turn);
       const raw = viewOf(snapshot, self),
         view = presentView(raw);
       expect(view.seat).toBe("SOUTH");
       expect(view.hand).toEqual(raw.hand);
+      expect(view.currentPoints).toEqual(ownTotals(raw.currentPoints!, self));
       expect(raw.seat).toBe(self);
       expect(view.tricks[0].plays.map((play) => play.seat)).toEqual(
         raw.tricks[0].plays.map((play) => relativeSeat(play.seat, self)),

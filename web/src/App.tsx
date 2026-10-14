@@ -16,6 +16,7 @@ import Announcements from "./components/Announcements";
 import OnlineGame from "./components/OnlineGame";
 import { useOnlineGame } from "./lib/useOnlineGame";
 import { playerNames } from "./lib/presentation";
+import { useResultReady } from "./lib/useResultReady";
 type Screen = "menu" | "game" | "online" | "join" | "history" | "review";
 const screenFromHash = (): Screen => {
   const hash = location.hash.slice(1).replace(/-coach$/, "");
@@ -146,6 +147,7 @@ export default function App() {
     ["DEAL_FINISHED", "MATCH_FINISHED", "REDEAL_REQUIRED"].includes(
       game.view.phase,
     );
+  const resultReady = useResultReady(game.view?.phase, game.view?.dealNumber);
   return (
     <div className="app-shell">
       <main>
@@ -245,6 +247,12 @@ export default function App() {
                 <Table
                   view={game.view}
                   onDeclarations={() => setModal("declarations")}
+                  onDeclarationChoice={(show) =>
+                    game.action({
+                      type: show ? "declare" : "decline-declarations",
+                      seat: "SOUTH",
+                    })
+                  }
                   onPlay={(card) =>
                     game.action({ type: "play", seat: "SOUTH", card })
                   }
@@ -254,67 +262,71 @@ export default function App() {
               ))}
           </>
         )}
-        {game.ready && screen === "game" && game.view && terminal && (
-          <Modal title="Результат раздачи" onClose={() => go("menu")}>
-            <h2>
-              {game.view.phase === "REDEAL_REQUIRED"
-                ? "Все спасовали"
-                : game.view.phase === "MATCH_FINISHED"
-                  ? game.state?.winner === "NORTH_SOUTH"
-                    ? "Ваша команда выиграла"
-                    : "Победили соперники"
-                  : "Раздача завершена"}
-            </h2>
-            {game.view.phase === "REDEAL_REQUIRED" ? (
-              <p>Карты пересдаются следующему сдающему.</p>
-            ) : (
-              <>
-                <p>
-                  {game.state?.result?.contractSucceeded
-                    ? "Контракт выполнен"
-                    : "Контракт не выполнен"}
-                </p>
-                <div className="result-score">
-                  {game.view.scores.northSouth}
-                  <span>:</span>
-                  {game.view.scores.eastWest}
-                </div>
-                <p>
-                  За раздачу: {game.state?.result?.awarded.northSouth} :{" "}
-                  {game.state?.result?.awarded.eastWest}
-                </p>
-              </>
-            )}
-            {game.view.phase === "MATCH_FINISHED" ? (
-              <>
-                <p>
-                  {game.saving ||
-                  !game.matches.some((m) => m.id === game.session?.id)
-                    ? "Сохраняем запись…"
-                    : "Матч сохранён в «Мои игры»."}
-                </p>
-                <button
-                  className="menu-primary"
-                  disabled={
-                    game.saving ||
+        {game.ready &&
+          screen === "game" &&
+          game.view &&
+          terminal &&
+          resultReady && (
+            <Modal title="Результат раздачи" onClose={() => go("menu")}>
+              <h2>
+                {game.view.phase === "REDEAL_REQUIRED"
+                  ? "Все спасовали"
+                  : game.view.phase === "MATCH_FINISHED"
+                    ? game.state?.winner === "NORTH_SOUTH"
+                      ? "Ваша команда выиграла"
+                      : "Победили соперники"
+                    : "Раздача завершена"}
+              </h2>
+              {game.view.phase === "REDEAL_REQUIRED" ? (
+                <p>Карты пересдаются следующему сдающему.</p>
+              ) : (
+                <>
+                  <p>
+                    {game.state?.result?.contractSucceeded
+                      ? "Контракт выполнен"
+                      : "Контракт не выполнен"}
+                  </p>
+                  <div className="result-score">
+                    {game.view.scores.northSouth}
+                    <span>:</span>
+                    {game.view.scores.eastWest}
+                  </div>
+                  <p>
+                    За раздачу: {game.state?.result?.awarded.northSouth} :{" "}
+                    {game.state?.result?.awarded.eastWest}
+                  </p>
+                </>
+              )}
+              {game.view.phase === "MATCH_FINISHED" ? (
+                <>
+                  <p>
+                    {game.saving ||
                     !game.matches.some((m) => m.id === game.session?.id)
-                  }
-                  onClick={() => go("menu")}
-                >
-                  В главное меню
+                      ? "Сохраняем запись…"
+                      : "Матч сохранён в «Мои игры»."}
+                  </p>
+                  <button
+                    className="menu-primary"
+                    disabled={
+                      game.saving ||
+                      !game.matches.some((m) => m.id === game.session?.id)
+                    }
+                    onClick={() => go("menu")}
+                  >
+                    В главное меню
+                    <Icon name="arrow" />
+                  </button>
+                </>
+              ) : (
+                <button className="menu-primary" onClick={game.next}>
+                  {game.view.phase === "REDEAL_REQUIRED"
+                    ? "Пересдать"
+                    : "Следующая раздача"}
                   <Icon name="arrow" />
                 </button>
-              </>
-            ) : (
-              <button className="menu-primary" onClick={game.next}>
-                {game.view.phase === "REDEAL_REQUIRED"
-                  ? "Пересдать"
-                  : "Следующая раздача"}
-                <Icon name="arrow" />
-              </button>
-            )}
-          </Modal>
-        )}
+              )}
+            </Modal>
+          )}
         {modal === "game" && (
           <Modal title="Меню партии" onClose={() => setModal(null)}>
             <h2>Меню партии</h2>
@@ -385,7 +397,7 @@ export default function App() {
             <h2>Базар блот</h2>
             <p>
               Четыре игрока, две команды. Партия до 301. Профиль правил:
-              armenian-training-0.1.
+              armenian-training-0.2.
             </p>
             <p>
               Офлайн-тренировка работает на общем движке. Боты совершают

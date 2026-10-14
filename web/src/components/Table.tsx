@@ -1,9 +1,12 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import type { Card, PlayerView, Seat, PlayerPresence } from "../lib/types";
 import { cardKey, names, symbols, dealEvents } from "../lib/types";
 import Icon from "./Icon";
 import PlayingCard from "./PlayingCard";
 import TrickCards from "./TrickCards";
+import SuitImage from "./SuitImage";
+import Modal from "./Modal";
+import { useTrickMotion } from "../lib/useTrickMotion";
 export function Players({
   view,
   bidding = false,
@@ -119,6 +122,8 @@ export default function Table({
   onCoach,
   onMenu,
   onDeclarations,
+  onDeclarationChoice,
+  animate = true,
   labels = names,
   online = false,
   status,
@@ -129,15 +134,31 @@ export default function Table({
   onCoach: () => void;
   onMenu: () => void;
   onDeclarations: () => void;
+  onDeclarationChoice: (show: boolean) => void;
+  animate?: boolean;
   labels?: Record<Seat, string>;
   online?: boolean;
   status?: ReactNode;
   presence?: PlayerPresence;
 }) {
   const legal = new Set(view.options.cards.map(cardKey));
-  const current = view.trick.length
-    ? view.trick
-    : (view.tricks.at(-1)?.plays ?? []);
+  const motion = useTrickMotion(view, animate);
+  const [lastOpen, setLastOpen] = useState(false);
+  const last = view.tricks.at(-1);
+  // Compatibility with a server still using protocol 1; only public information.
+  const points =
+    view.currentPoints ??
+    view.tricks.reduce(
+      (total, trick) => {
+        total[
+          trick.winner === "SOUTH" || trick.winner === "NORTH"
+            ? "northSouth"
+            : "eastWest"
+        ] += trick.cardPoints;
+        return total;
+      },
+      { northSouth: 0, eastWest: 0 },
+    );
   const finished = !["PLAYING"].includes(view.phase);
   const decl = dealEvents(view.events)
     .filter(
@@ -161,15 +182,30 @@ export default function Table({
             <Icon name="menu" />
           </button>
           <div className="scoreboard" aria-label="Счёт команд">
+            <div className="score-columns">
+              <span>Партия</span>
+              <span>Раздача</span>
+            </div>
             <div>
               <span className="team-dot ours" />
               Мы<strong>{view.scores.northSouth}</strong>
+              <b className="deal-points" aria-label="Наши очки раздачи">
+                {points.northSouth}
+              </b>
             </div>
             <div>
               <span className="team-dot theirs" />
               Они<strong>{view.scores.eastWest}</strong>
+              <b className="deal-points" aria-label="Очки раздачи соперников">
+                {points.eastWest}
+              </b>
             </div>
-            <div className="score-meta">До {view.target}</div>
+            <div className="score-meta">
+              <span>До {view.target}</span>
+              <span title="Взятые карты и показанные бонусы в карточных очках">
+                Очки карт
+              </span>
+            </div>
           </div>
           <div className="round-info">
             <span>Раздача {view.dealNumber}</span>
@@ -186,7 +222,7 @@ export default function Table({
                         : ""
                     }
                   >
-                    {symbols[view.auction.contract.trump]}
+                    <SuitImage suit={view.auction.contract.trump} />
                   </b>
                 </>
               ) : (
@@ -211,8 +247,41 @@ export default function Table({
             <p>Базар блот</p>
           </div>
           <div className="trick">
-            <TrickCards plays={current} labels={labels} />
+            <TrickCards
+              plays={view.trick}
+              labels={labels}
+              fresh={motion.fresh}
+              dealNumber={view.dealNumber}
+            />
           </div>
+          {motion.collection && (
+            <div
+              className="trick trick-collection"
+              data-winner={motion.collection.winner}
+              aria-label={`Взятку забирает ${labels[motion.collection.winner]}`}
+            >
+              <TrickCards
+                plays={motion.collection.plays}
+                labels={labels}
+                fresh={motion.fresh}
+                dealNumber={view.dealNumber}
+              />
+            </div>
+          )}
+          {last && (
+            <button
+              className="last-trick"
+              aria-label="Последняя взятка"
+              onClick={() => setLastOpen(true)}
+            >
+              <span>Бита · {labels[last.winner]}</span>
+              <div>
+                {last.plays.map((p) => (
+                  <PlayingCard key={p.seat} card={p.card} />
+                ))}
+              </div>
+            </button>
+          )}
           <div className="turn-prompt" role="status">
             <span className="turn-dot" />
             {finished
@@ -283,6 +352,54 @@ export default function Table({
           <Icon name="arrow" />
         </button>
       </aside>
+      {view.options.mayDeclare && (
+        <Modal
+          title="Показать объявления?"
+          onClose={() => onDeclarationChoice(false)}
+        >
+          <h2>Показать объявления?</h2>
+          <p>
+            Объявим комбинации сейчас, а карты покажем перед вашим ходом во
+            второй взятке. При отказе бонус не засчитывается.
+          </p>
+          {view.options.declarationsToShow?.map((d, i) => (
+            <div className="declaration-choice" key={i}>
+              <strong>
+                {d.kind === "FOUR_EIGHTS"
+                  ? "Четыре восьмёрки"
+                  : d.kind === "FOUR"
+                    ? "Рамка"
+                    : "Последовательность"}{" "}
+                · {d.points / 10} очков
+              </strong>
+              <div className="announcement-cards">
+                {d.cards.map((c) => (
+                  <PlayingCard key={cardKey(c)} card={c} />
+                ))}
+              </div>
+            </div>
+          ))}
+          <button
+            className="menu-primary"
+            onClick={() => onDeclarationChoice(true)}
+          >
+            Показать объявления
+          </button>
+          <button
+            className="menu-secondary"
+            onClick={() => onDeclarationChoice(false)}
+          >
+            Не показывать
+          </button>
+        </Modal>
+      )}
+      {lastOpen && last && (
+        <Modal title="Последняя взятка" onClose={() => setLastOpen(false)}>
+          <h2>Взял: {labels[last.winner]}</h2>
+          <p>{last.cardPoints} очков раздачи</p>
+          <TrickCards plays={last.plays} labels={labels} />
+        </Modal>
+      )}
     </div>
   );
 }

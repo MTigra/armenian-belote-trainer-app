@@ -20,6 +20,12 @@ class GameHub(
     private val random = SecureRandom()
     suspend fun issue(request: GuestRequest) = mutex.withLock { guests.issue(request, now()) }
     suspend fun me(token: String) = mutex.withLock { guests.status(guests.authenticate(token, now())) }
+    suspend fun rename(token: String, request: RenameGuest) = mutex.withLock {
+        val guest = guests.authenticate(token, now())
+        guests.rename(guest, request.nickname)
+        guest.tableCode?.let { rooms[it] }?.let(::broadcast)
+        guests.status(guest)
+    }
     suspend fun create(token: String, request: CreateTable): TableSnapshot = mutex.withLock {
         val guest = guests.authenticate(token, now())
         if (guest.tableCode != null) fail(409, "ALREADY_SEATED", "Сначала вернитесь к текущему столу или покиньте его лобби.")

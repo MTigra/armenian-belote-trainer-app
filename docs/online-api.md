@@ -1,4 +1,4 @@
-# Контракты онлайн-игры, версия 1
+# Контракты онлайн-игры, версия 2
 
 Типы сервера: `server/src/main/kotlin/am/blot/server/Protocol.kt`. Типы клиента: `web/src/lib/onlineTypes.ts`. `Action`, `PlayerView` и `MatchRecord` используют существующий формат общего движка. Неподдерживаемая версия протокола прекращает соединение с предложением обновить приложение.
 
@@ -6,9 +6,10 @@
 
 | Метод | Путь | Запрос и результат |
 | --- | --- | --- |
-| GET | `/api/health` | `{status:"ok", protocolVersion:"1"}` |
+| GET | `/api/health` | `{status:"ok", protocolVersion:"2"}` |
 | POST | `/api/guests` | `{nickname?:string}` → 201 `{id,nickname,token}`; без ника генерируется «Гость NNNN» |
 | GET | `/api/me` | Bearer token → `{id,nickname,tableCode}` |
+| POST | `/api/me` | Bearer token, `{nickname:string}` → `{id,nickname,tableCode}`; 1–32 символа после trim, управляющие знаки запрещены; ID/токен/место и deadline не меняются, имя рассылается участникам |
 | POST | `/api/tables` | Bearer token, `{name,timerSeconds}` → 201 личный `TableSnapshot` |
 | POST | `/api/tables/{code}/join` | Bearer token, `{}` → личный `TableSnapshot`; начатую партию можно открыть только её участнику |
 | GET | `/api/tables/{code}` | Bearer token → личный `TableSnapshot`; чужая сессия не получает состояние |
@@ -41,9 +42,9 @@
 Успех обычно приходит как `state`, затем `ack` с requestId. `revision` увеличивается при старте, ходе, таймере/боте и новой раздаче; изменения подключённости отправляют новый снимок без изменения игровой revision. Повтор идентичного requestId подтверждается без повторного действия, переиспользование с другим содержимым отклоняется. Устаревший expectedRevision возвращает `STALE_STATE` без изменения игры.
 
 ```json
-{"type":"state","protocolVersion":1,"snapshot":"<TableSnapshot>","requestId":null,"error":null,"match":null}
-{"type":"ack","protocolVersion":1,"snapshot":null,"requestId":"<id>","error":null,"match":null}
-{"type":"error","protocolVersion":1,"snapshot":null,"requestId":"<id>","error":{"code":"ILLEGAL_ACTION","message":"Этот ход сейчас недопустим."},"match":null}
+{"type":"state","protocolVersion":2,"snapshot":"<TableSnapshot>","requestId":null,"error":null,"match":null}
+{"type":"ack","protocolVersion":2,"snapshot":null,"requestId":"<id>","error":null,"match":null}
+{"type":"error","protocolVersion":2,"snapshot":null,"requestId":"<id>","error":{"code":"ILLEGAL_ACTION","message":"Этот ход сейчас недопустим."},"match":null}
 ```
 
 В `TableSnapshot` есть ID/код/имя стола, hostId, таймер, createdAt, revision, статус LOBBY/PLAYING/FINISHED, selfSeat, публичные участники, PlayerView, actionCount, сроки действий `deadlines`, serverTime, публичный результат раздачи и победитель. В лобби `view` равен null. Клиент оценивает отображаемое оставшееся время через serverTime, но решение об истечении принимает только сервер.
@@ -51,3 +52,19 @@
 `finished` содержит финальный личный снимок и `CompletedMatch`: id, createdAt, finishedAt, record, scores, winner, seat, players, timerSeconds. Только этот пакет раскрывает исходные руки всех раздач. Чатов и токенов в нём нет. После передачи сервер удаляет стол; повторный запрос состояния возвращает `TABLE_GONE`.
 
 Клиент хранит настоящий server selfSeat для команд, а для экрана поворачивает проекцию так, чтобы своё место было SOUTH. При этом поворачиваются все места в событиях и взятках и меняется представление счёта для EAST/WEST; авторитетный счёт и архив остаются в серверных координатах.
+
+## Версии и объявления
+
+Сервер версии 2 создаёт партии профиля `armenian-training-0.2`. Новый клиент
+принимает протоколы 1 и 2 для последовательного обновления сайта и сервера.
+Старый клиент отклоняет протокол 2 с предложением обновить страницу. Записи
+профилей 0.1 и 0.2 поддерживаются новым движком; формат архива остаётся 1.
+
+До первой карты игрок с комбинацией выбирает `declare` или
+`decline-declarations`. Личные `options` содержат `mayDeclare`,
+`mayDeclineDeclarations`, `declarationsToShow` только для принимающего решение
+игрока; в публичных событиях карты появляются только при разрешённом раскрытии
+во второй взятке. Отказ и истечение таймера отменяют обычные бонусы, бот
+соглашается, блот-реблот автоматический. Решение увеличивает revision как обычное
+действие. `currentPoints` показывает уже взятые карточные очки раздачи и
+раскрытые бонусы отдельно от `scores`. [Профиль](rules/profile-v2.md).

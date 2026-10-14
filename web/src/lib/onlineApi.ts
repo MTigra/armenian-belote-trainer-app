@@ -88,7 +88,10 @@ export async function waitForOnlineServer(cancel?: AbortSignal): Promise<void> {
         response.headers.get("content-type")?.includes("application/json")
       ) {
         const health = await response.json();
-        if (health.status === "ok" && String(health.protocolVersion) === "1")
+        if (
+          health.status === "ok" &&
+          ["1", "2"].includes(String(health.protocolVersion))
+        )
           return;
         throw new OnlineFailure(
           "PROTOCOL_ERROR",
@@ -155,16 +158,28 @@ export async function onlineRequest<T>(
     );
   }
 }
-export async function createGuest(): Promise<GuestIdentity> {
+export function preferredNickname(): string {
+  try {
+    return localStorage.getItem("blot.nickname") || "";
+  } catch {
+    return "";
+  }
+}
+export function rememberNickname(value: string): void {
+  localStorage.setItem("blot.nickname", value.trim());
+}
+export async function createGuest(nickname = ""): Promise<GuestIdentity> {
   const credentials = await onlineRequest<
     Omit<GuestIdentity, "origin" | "tableCode">
-  >("/api/guests", null, {});
+  >("/api/guests", null, nickname.trim() ? { nickname: nickname.trim() } : {});
   const guest = { ...credentials, origin: serverOrigin(), tableCode: null };
   rememberGuest(guest);
   return guest;
 }
 export const guestStatus = (guest: GuestIdentity) =>
   onlineRequest<GuestStatus>("/api/me", guest);
+export const renameGuest = (guest: GuestIdentity, nickname: string) =>
+  onlineRequest<GuestStatus>("/api/me", guest, { nickname });
 export const createTable = (
   guest: GuestIdentity,
   name: string,

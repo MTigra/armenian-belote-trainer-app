@@ -38,9 +38,10 @@ fun Application.gameServer(hub: GameHub = GameHub(), origins: Set<String> = defa
     if (runTicker) ticker.launch { while (isActive) { delay(250); hub.tick() } }
     monitor.subscribe(ApplicationStopped) { ticker.cancel(); runBlocking { hub.close() } }
     routing {
-        get("/api/health") { call.respond(mapOf("status" to "ok", "protocolVersion" to "1")) }
+        get("/api/health") { call.respond(mapOf("status" to "ok", "protocolVersion" to "2")) }
         post("/api/guests") { call.respond(HttpStatusCode.Created, hub.issue(call.receive<GuestRequest>())) }
         get("/api/me") { call.respond(hub.me(call.token())) }
+        post("/api/me") { call.respond(hub.rename(call.token(), call.receive<RenameGuest>())) }
         post("/api/tables") { call.respond(HttpStatusCode.Created, hub.create(call.token(), call.receive<CreateTable>())) }
         post("/api/tables/{code}/join") { call.respond(hub.join(call.token(), call.code())) }
         get("/api/tables/{code}") { call.respond(hub.snapshot(call.token(), call.code())) }

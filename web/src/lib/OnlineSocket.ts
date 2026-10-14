@@ -64,7 +64,7 @@ export class OnlineSocket {
   private receive(data: unknown): void {
     try {
       const message = JSON.parse(String(data)) as OnlineMessage;
-      if (message.protocolVersion !== 1)
+      if (![1, 2].includes(message.protocolVersion))
         throw new Error("Обновите приложение: версия сервера изменилась.");
       if (message.type === "state") {
         this.life.attempts = 0;

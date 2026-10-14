@@ -15,7 +15,14 @@ async function snapshot(page: Page) {
 }
 async function play(page: Page) {
   await expect
-    .poll(() => page.locator(".hand button:enabled").count())
+    .poll(async () => {
+      const choice = page.getByRole("button", {
+        name: "Показать объявления",
+        exact: true,
+      });
+      if (await choice.isVisible()) await choice.click();
+      return page.locator(".hand button:enabled").count();
+    })
     .toBeGreaterThan(0);
   await page
     .locator(".hand button:enabled")
@@ -32,6 +39,16 @@ test("four guests play online, resume their own seat, keep coach independent and
       browser.newContext({ viewport: { width: 390, height: 844 } }),
     ),
   );
+  await contexts[3].addInitScript(() => {
+    const NativeSocket = window.WebSocket;
+    (window as any).testSockets = [];
+    window.WebSocket = class extends NativeSocket {
+      constructor(url: string | URL, protocols?: string | string[]) {
+        super(url, protocols);
+        (window as any).testSockets.push(this);
+      }
+    };
+  });
   const pages = await Promise.all(contexts.map((context) => context.newPage()));
   try {
     if (process.env.E2E_USE_DEFAULT_API === "1")
@@ -77,6 +94,7 @@ test("four guests play online, resume their own seat, keep coach independent and
     await pages[0]
       .getByRole("button", { name: "Создать", exact: true })
       .click();
+    await pages[0].getByLabel("Имя за столом").fill("Тигран");
     await pages[0]
       .getByLabel("Название стола")
       .fill("Проверка четырёх игроков");
@@ -92,6 +110,9 @@ test("four guests play online, resume their own seat, keep coach independent and
       await page
         .getByRole("button", { name: "Играть с людьми", exact: true })
         .click();
+      await page
+        .getByLabel("Имя за столом")
+        .fill(["", "Нарек", "Давид", "Мариам"][pages.indexOf(page)]);
       await page.getByLabel("Код стола", { exact: true }).fill(code);
       await page
         .getByRole("button", { name: "Подключиться", exact: true })
@@ -101,10 +122,38 @@ test("four guests play online, resume their own seat, keep coach independent and
     await expect(
       pages[0].getByRole("button", { name: "Начать партию" }),
     ).toBeEnabled();
+    // Editing a saved guest must keep identity, occupied seat and all four clients.
+    const originalGuest = await credentials(pages[0]);
+    await pages[0]
+      .getByRole("button", { name: "В главное меню", exact: true })
+      .click();
+    await pages[0]
+      .getByRole("button", { name: "Играть с людьми", exact: true })
+      .click();
+    await pages[0].getByLabel("Имя за столом").fill("Тигран Блот");
+    await pages[0]
+      .getByRole("button", { name: "Сохранить имя", exact: true })
+      .click();
+    await expect
+      .poll(async () => (await credentials(pages[0])).nickname)
+      .toBe("Тигран Блот");
+    expect((await credentials(pages[0])).token).toBe(originalGuest.token);
+    await pages[0]
+      .getByRole("button", { name: "Вернуться за стол", exact: true })
+      .click();
+    await expect(
+      pages[1].getByText("Тигран Блот", { exact: true }),
+    ).toBeVisible();
     await pages[0].getByRole("button", { name: "Начать партию" }).click();
     for (const page of pages)
       await expect(page.locator(".bid-hand .playing-card")).toHaveCount(8);
     const views = await Promise.all(pages.map(snapshot));
+    expect(views[0].members.map((member: any) => member.nickname)).toEqual([
+      "Тигран Блот",
+      "Нарек",
+      "Давид",
+      "Мариам",
+    ]);
     expect(views.map((value) => value.selfSeat)).toEqual([
       "SOUTH",
       "WEST",
@@ -153,7 +202,21 @@ test("four guests play online, resume their own seat, keep coach independent and
     await expect(pages[2].getByRole("alert")).toContainText(
       "пока не подключён",
     );
+    await contexts[3].setOffline(true);
+    await pages[3].evaluate(() =>
+      (window as any).testSockets.forEach((socket: WebSocket) =>
+        socket.close(),
+      ),
+    );
+    await expect(pages[3].locator(".online-status")).toContainText("связь");
     await play(pages[1]);
+    await contexts[3].setOffline(false);
+    await expect(
+      pages[3].locator(".trick > .trick-cards .trick-play"),
+    ).toHaveCount(1);
+    await expect(
+      pages[3].locator(".card-throw, .trick-collection"),
+    ).toHaveCount(0);
     await expect(pages[2].locator(".message.user small")).toContainText(
       "прошлый момент",
     );
@@ -169,7 +232,12 @@ test("four guests play online, resume their own seat, keep coach independent and
       if (Date.now() > limit) throw new Error("Online match did not finish");
       let moved = false;
       for (const page of pages) {
-        if (await page.locator(".hand button:enabled").count()) {
+        if (
+          (await page.locator(".hand button:enabled").count()) ||
+          (await page
+            .getByRole("button", { name: "Показать объявления", exact: true })
+            .isVisible())
+        ) {
           await play(page);
           moved = true;
           break;

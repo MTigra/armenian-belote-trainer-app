@@ -1,6 +1,6 @@
 import { SEATS } from "./types";
 import type { SavedMatch, ChatMessage, Seat } from "./types";
-import { validateRecord, PROFILE } from "./engine";
+import { validateRecord, SUPPORTED_PROFILES } from "./engine";
 export function exportMatch(match: SavedMatch): string {
   return JSON.stringify(
     {
@@ -23,7 +23,7 @@ export function importMatch(text: string): SavedMatch {
     !envelope.match
   )
     throw new Error("Неизвестный формат файла");
-  if (envelope.match.record?.profileVersion !== PROFILE)
+  if (!SUPPORTED_PROFILES.includes(envelope.match.record?.profileVersion))
     throw new Error("Версия правил этого матча пока не поддерживается");
   const { record, state } = validateRecord(envelope.match.record);
   const source = envelope.match;

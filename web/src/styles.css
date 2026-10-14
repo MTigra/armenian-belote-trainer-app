@@ -250,6 +250,14 @@ main {
   padding-top: 5px;
   border-top: 1px solid #ffffff12;
 }
+.scoreboard .score-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+}
+.scoreboard .score-meta > span:last-child {
+  color: #f1d79e;
+}
 .round-info {
   position: absolute;
   right: 23px;
@@ -3809,4 +3817,253 @@ main {
 }
 [data-connection="bot"] .avatar {
   border-style: dashed;
+}
+/* Local, outlined SVG artwork never depends on a handset's text/emoji fonts. */
+.playing-card {
+  padding: 0;
+  overflow: hidden;
+  background: #fff;
+}
+.card-face {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  user-select: none;
+  pointer-events: none;
+}
+.playing-card:disabled {
+  opacity: 1;
+  background: #b9bdbc;
+  cursor: default;
+}
+.playing-card:disabled .card-face {
+  filter: grayscale(1) brightness(0.77) contrast(0.88);
+}
+.suit-image {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: middle;
+  object-fit: contain;
+  opacity: 1;
+}
+.round-info .suit-image {
+  width: 19px;
+  height: 21px;
+}
+.suit-choice .suit-image {
+  width: 26px;
+  height: 26px;
+}
+.current-bid .suit-image {
+  width: 32px;
+  height: 32px;
+}
+.scoreboard {
+  width: 180px;
+  padding: 9px 10px;
+}
+.scoreboard .score-columns {
+  justify-content: flex-end;
+  gap: 9px;
+  font-size: 9px;
+  color: #b1cbb8;
+}
+.scoreboard .deal-points {
+  width: 41px;
+  text-align: right;
+  color: #f1d79e;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.scoreboard strong {
+  font-size: 16px;
+}
+.score-meta {
+  font-size: 9px;
+}
+.card-rest,
+.card-throw {
+  width: 100%;
+  height: 100%;
+}
+.card-throw {
+  animation: card-throw 240ms cubic-bezier(0.16, 0.7, 0.3, 1) both;
+}
+/* Local card coordinates face the owner; arriving from behind the card is always that seat. */
+@keyframes card-throw {
+  from {
+    transform: translateY(140px) scale(0.85);
+    opacity: 0.15;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+.trick-collection {
+  z-index: 5;
+  --take-x: 0px;
+  --take-y: 190px;
+}
+.trick-collection[data-winner="NORTH"] {
+  --take-y: -190px;
+}
+.trick-collection[data-winner="WEST"] {
+  --take-x: -230px;
+  --take-y: 0px;
+}
+.trick-collection[data-winner="EAST"] {
+  --take-x: 230px;
+  --take-y: 0px;
+}
+.trick-collection > .trick-cards {
+  animation: collect-trick 460ms 400ms cubic-bezier(0.6, 0, 0.4, 1) both;
+}
+@keyframes collect-trick {
+  to {
+    transform: translate(var(--take-x), var(--take-y)) scale(0.2);
+    opacity: 0;
+  }
+}
+.last-trick {
+  position: absolute;
+  left: 24px;
+  bottom: 176px;
+  width: 88px;
+  z-index: 6;
+  padding: 5px 0;
+  background: none;
+  color: #c5d2b9;
+  text-align: left;
+  min-height: 44px;
+}
+.last-trick > span {
+  display: block;
+  font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.last-trick > div {
+  display: flex;
+  padding-right: 4px;
+}
+.last-trick .playing-card {
+  width: 29px;
+  height: 42px;
+  margin-left: -10px;
+  box-shadow: 0 2px 4px #0005;
+  border-radius: 3px;
+  flex: none;
+}
+.last-trick .playing-card:first-child {
+  margin-left: 0;
+}
+.declarations-button {
+  color: #f4db9c;
+  border: 1px solid #bfa36c88;
+  background: #173b2a;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+.declaration-note {
+  color: #f4dcac;
+}
+.declaration-choice {
+  margin: 14px 0;
+}
+.declaration-choice strong {
+  font-size: 13px;
+}
+.guest-name-field {
+  margin-bottom: 22px;
+}
+.guest-name-field label {
+  display: grid;
+  gap: 9px;
+  font-size: 13px;
+}
+.guest-name-field input {
+  min-height: 48px;
+  width: 100%;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  color: var(--text);
+  background: #17372c;
+  font: inherit;
+}
+@media (max-width: 520px) and (orientation: portrait) {
+  .scoreboard {
+    width: 145px;
+    left: 10px;
+    top: 18px;
+    padding: 8px;
+  }
+  .scoreboard .score-columns {
+    gap: 5px;
+    font-size: 8px;
+  }
+  .scoreboard .deal-points {
+    width: 33px;
+    font-size: 15px;
+  }
+  .scoreboard strong {
+    font-size: 14px;
+  }
+  .last-trick {
+    top: 340px;
+    bottom: auto;
+    left: 14px;
+  }
+  .last-trick .playing-card {
+    width: 25px;
+    height: 36px;
+  }
+}
+@media (max-height: 540px) and (orientation: landscape) {
+  .scoreboard {
+    width: 153px;
+    top: 14px;
+  }
+  .scoreboard .score-columns {
+    font-size: 8px;
+  }
+  .scoreboard .deal-points {
+    width: 34px;
+    font-size: 15px;
+  }
+  .last-trick {
+    left: 17px;
+    bottom: 76px;
+  }
+  .last-trick .playing-card {
+    width: 26px;
+    height: 38px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-throw,
+  .trick-collection > .trick-cards {
+    animation: none;
+  }
+}
+
+@media (max-width: 360px) and (orientation: portrait) {
+  .scoreboard {
+    width: 120px;
+  }
+  .scoreboard > div:not(.score-meta) {
+    gap: 5px;
+  }
+  .scoreboard .score-columns {
+    gap: 4px;
+    font-size: 7px;
+  }
+  .scoreboard .deal-points {
+    width: 28px;
+  }
 }

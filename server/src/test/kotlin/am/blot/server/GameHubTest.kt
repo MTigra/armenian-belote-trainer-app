@@ -5,6 +5,47 @@ import kotlinx.coroutines.*
 import kotlin.test.*
 
 class GameHubTest {
+    @Test fun renamingGuestBroadcastsWithoutChangingSeatRevisionOrDeadline() = runBlocking<Unit> {
+        val clock = Clock(); val table = table(GameHub(clock::value), 60)
+        table.command(0, "start"); table.drain()
+        val before = table.view(1)
+        clock.advance(5000)
+        val status = table.hub.rename(table.guests[1].token, RenameGuest("  Тигран  "))
+        assertEquals(table.guests[1].id, status.id)
+        assertEquals("Тигран", status.nickname)
+        assertEquals(table.code, status.tableCode)
+        val after = table.view(1)
+        assertEquals(before.revision, after.revision)
+        assertEquals(before.deadlines, after.deadlines)
+        assertEquals(before.selfSeat, after.selfSeat)
+        assertEquals(before.view, after.view)
+        val messages = table.drain().mapNotNull { it.snapshot }
+        assertEquals(4, messages.size)
+        assertTrue(messages.all { it.members.first { m -> m.seat == Seat.WEST }.nickname == "Тигран" })
+        for (name in listOf("", "x".repeat(33), "Имя\nФамилия"))
+            assertFailsWith<ApiFailure> { table.hub.rename(table.guests[1].token, RenameGuest(name)) }
+        assertFailsWith<ApiFailure> { table.hub.rename("another-token", RenameGuest("Чужой")) }
+        assertEquals("Тигран", table.hub.me(table.guests[1].token).nickname)
+    }
+    @Test fun declarationDeadlineDeclinesWithoutLeakingCardsAndDoesNotPlayAutomaticallyAtSameInstant() = runBlocking<Unit> {
+        val clock = Clock(); val table = table(GameHub(clock::value, deck = CardRules::deck), 30)
+        table.command(0, "start"); table.drain()
+        table.command(1, "action", Action.Bid(Seat.WEST, 8, Suit.SPADES)); table.drain()
+        repeat(4) { val v = table.view().view!!; table.command(v.auction.turn.ordinal, "action", Action.Pass(v.auction.turn)); table.drain() }
+        assertTrue(table.view(1).view!!.options.mayDeclare)
+        assertTrue(table.view(0).view!!.options.declarationsToShow.isEmpty())
+        val before = table.view(1)
+        clock.advance(30_001); table.hub.tick(); table.drain()
+        val after = table.view(1)
+        assertEquals(before.actionCount + 1, after.actionCount)
+        assertEquals(before.view!!.hand, after.view!!.hand)
+        assertEquals(EventKind.DECLARATION_DECLINED, after.view.events.last().kind)
+        assertFalse(after.view.options.mayDeclare)
+        assertTrue(after.view.options.cards.isNotEmpty())
+        assertTrue(after.deadlines.getValue(Seat.WEST) > clock.value)
+        table.hub.tick()
+        assertEquals(after.actionCount, table.view(1).actionCount)
+    }
     private class Clock { var value = 1_000L; fun advance(ms: Long) { value += ms } }
     private class Table(val hub: GameHub, val code: String, val guests: List<GuestCredentials>, val links: List<Connection>) {
         private var sequence = 0
@@ -127,7 +168,9 @@ class GameHubTest {
             val view = table.view().view ?: error("view")
             val actor = view.turn
             val actorView = table.view(actor.ordinal).view ?: error("view")
-            table.command(actor.ordinal, "action", Action.Play(actor, actorView.options.cards.first()))
+            if (actorView.options.mayDeclare) { table.command(actor.ordinal, "action", Action.Declare(actor)); table.drain() }
+            val playable = table.view(actor.ordinal).view!!
+            table.command(actor.ordinal, "action", Action.Play(actor, playable.options.cards.first()))
             receipts = table.drain().mapNotNull { it.match }.ifEmpty { receipts }
         }
         assertEquals(4, receipts.size)

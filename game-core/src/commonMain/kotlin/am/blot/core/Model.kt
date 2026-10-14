@@ -3,7 +3,9 @@ package am.blot.core
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
-const val PROFILE_VERSION = "armenian-training-0.1"
+const val PROFILE_VERSION = "armenian-training-0.2"
+const val LEGACY_PROFILE_VERSION = "armenian-training-0.1"
+fun supportedProfile(version: String) = version in setOf(PROFILE_VERSION, LEGACY_PROFILE_VERSION)
 
 @Serializable enum class Suit { SPADES, HEARTS, DIAMONDS, CLUBS }
 // The ordinal is the order for runs, never the order for trick-taking.
@@ -42,7 +44,7 @@ const val PROFILE_VERSION = "armenian-training-0.1"
 }
 @Serializable enum class EventKind {
     DEAL_STARTED, BID, PASS, DOUBLE, REDOUBLE, DECLINE_REDOUBLE, CONTRACT_FIXED,
-    DECLARATION, DECLARATION_SHOWN, BLOT, REBLOT, CARD_PLAYED, TRICK_WON, DEAL_SCORED, MATCH_WON, REDEAL,
+    DECLARATION, DECLARATION_DECLINED, DECLARATION_SHOWN, BLOT, REBLOT, CARD_PLAYED, TRICK_WON, DEAL_SCORED, MATCH_WON, REDEAL,
 }
 /** Events contain public information only. Initial hands belong to private state/archive. */
 @Serializable data class GameEvent(
@@ -77,6 +79,7 @@ const val PROFILE_VERSION = "armenian-training-0.1"
     val tricks: List<WonTrick> = emptyList(),
     val declarations: Map<Seat, List<Declaration>> = emptyMap(),
     val announced: Set<Seat> = emptySet(),
+    val declarationDecisions: Set<Seat> = emptySet(),
     val shown: Set<Seat> = emptySet(),
     val blotFirst: Set<Seat> = emptySet(),
     val blotCompleted: Set<Seat> = emptySet(),
@@ -94,6 +97,8 @@ const val PROFILE_VERSION = "armenian-training-0.1"
     @Serializable @SerialName("double") data class Double(override val seat: Seat) : Action()
     @Serializable @SerialName("redouble") data class Redouble(override val seat: Seat) : Action()
     @Serializable @SerialName("decline-redouble") data class DeclineRedouble(override val seat: Seat) : Action()
+    @Serializable @SerialName("declare") data class Declare(override val seat: Seat) : Action()
+    @Serializable @SerialName("decline-declarations") data class DeclineDeclarations(override val seat: Seat) : Action()
     @Serializable @SerialName("play") data class Play(override val seat: Seat, val card: Card) : Action()
 }
 @Serializable data class ActionOptions(
@@ -104,6 +109,9 @@ const val PROFILE_VERSION = "armenian-training-0.1"
     val mayDouble: Boolean = false,
     val mayRedouble: Boolean = false,
     val mayDeclineRedouble: Boolean = false,
+    val mayDeclare: Boolean = false,
+    val mayDeclineDeclarations: Boolean = false,
+    val declarationsToShow: List<Declaration> = emptyList(),
 )
 @Serializable data class PublicDeclaration(val owner: Seat, val kind: DeclarationKind, val points: Int, val highRank: Rank, val trumpRun: Boolean)
 /** Only this projection may go to another player's UI or the trainer during a live match. */
@@ -125,4 +133,6 @@ const val PROFILE_VERSION = "armenian-training-0.1"
     val shownDeclarations: List<Declaration>,
     val events: List<GameEvent>,
     val options: ActionOptions,
+    /** Raw points already won in this deal, including disclosed bonuses and last-trick ten. */
+    val currentPoints: Totals = Totals(),
 )

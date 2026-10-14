@@ -18,7 +18,11 @@ class HttpSocketTest {
         application { gameServer(runTicker = false) }
         val client = createClient { install(ContentNegotiation) { json(wireJson) } }
         assertEquals(HttpStatusCode.Unauthorized, client.get("/api/me").status)
+        assertEquals(HttpStatusCode.Unauthorized, client.post("/api/me") { contentType(ContentType.Application.Json); setBody(RenameGuest("Тигран")) }.status)
         val guest = client.post("/api/guests") { contentType(ContentType.Application.Json); setBody(GuestRequest()) }.body<GuestCredentials>()
+        val renamed = client.post("/api/me") { bearerAuth(guest.token); contentType(ContentType.Application.Json); setBody(RenameGuest("Тигран")) }.body<GuestStatus>()
+        assertEquals(guest.id, renamed.id)
+        assertEquals("Тигран", client.get("/api/me") { bearerAuth(guest.token) }.body<GuestStatus>().nickname)
         assertEquals(HttpStatusCode.BadRequest, client.post("/api/tables") { bearerAuth(guest.token); contentType(ContentType.Application.Json); setBody(CreateTable(timerSeconds = 12)) }.status)
         assertEquals(HttpStatusCode.BadRequest, client.get("/api/tables/abc") { bearerAuth(guest.token) }.status)
         assertEquals(HttpStatusCode.ServiceUnavailable, client.post("/api/trainer").status)

@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import type { OnlineGameController } from "../lib/useOnlineGame";
-import { configureOrigin, serverOrigin } from "../lib/onlineApi";
+import {
+  configureOrigin,
+  serverOrigin,
+  preferredNickname,
+} from "../lib/onlineApi";
 import Icon from "./Icon";
 export default function Connection({
   onBack,
@@ -18,6 +22,9 @@ export default function Connection({
     [name, setName] = useState("Базар блот"),
     [timer, setTimer] = useState("60"),
     [address, setAddress] = useState(serverOrigin);
+  const [nickname, setNickname] = useState(
+    () => preferredNickname() || game.guest?.nickname || "",
+  );
   useEffect(() => () => game.cancelEntry(), [game.cancelEntry]);
   async function connect() {
     try {
@@ -30,8 +37,12 @@ export default function Connection({
     }
     const entered =
       tab === "code"
-        ? await game.join(code)
-        : await game.create(name, timer === "none" ? null : Number(timer));
+        ? await game.join(code, nickname)
+        : await game.create(
+            name,
+            timer === "none" ? null : Number(timer),
+            nickname,
+          );
     if (entered) onEntered();
   }
   return (
@@ -48,6 +59,32 @@ export default function Connection({
       </div>
       <div className="connection-layout">
         <div className="connection-main">
+          <div className="guest-name-field">
+            <label>
+              Имя за столом
+              <input
+                aria-label="Имя за столом"
+                maxLength={32}
+                value={nickname}
+                disabled={game.busy}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="Например, Тигран"
+              />
+            </label>
+            {game.guest && (
+              <button
+                className="text-button"
+                disabled={
+                  game.busy ||
+                  !nickname.trim() ||
+                  nickname.trim() === game.guest.nickname
+                }
+                onClick={() => void game.updateNickname(nickname)}
+              >
+                Сохранить имя
+              </button>
+            )}
+          </div>
           {game.snapshot && game.snapshot.status !== "FINISHED" ? (
             <>
               <p>Вы уже за столом {game.snapshot.code}.</p>

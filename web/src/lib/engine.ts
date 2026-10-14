@@ -17,7 +17,8 @@ import type {
   SavedMatch,
   Session,
 } from "./types";
-export const PROFILE = "armenian-training-0.1";
+export const PROFILE = "armenian-training-0.2";
+export const SUPPORTED_PROFILES = [PROFILE, "armenian-training-0.1"];
 export const stateOf = (snapshot: string): GameState => JSON.parse(snapshot);
 export const viewOf = (snapshot: string, seat: Seat = "SOUTH"): PlayerView =>
   JSON.parse(playerView(snapshot, seat));

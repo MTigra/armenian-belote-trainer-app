@@ -7,6 +7,7 @@ import kotlinx.serialization.json.Json
 val wireJson = Json { encodeDefaults = true }
 
 @Serializable data class GuestRequest(val nickname: String? = null)
+@Serializable data class RenameGuest(val nickname: String)
 @Serializable data class GuestCredentials(val id: String, val nickname: String, val token: String)
 @Serializable data class GuestStatus(val id: String, val nickname: String, val tableCode: String? = null)
 @Serializable data class CreateTable(val name: String = "Базар блот", val timerSeconds: Int? = 60)
@@ -51,7 +52,7 @@ val wireJson = Json { encodeDefaults = true }
 @Serializable data class ApiError(val code: String, val message: String)
 @Serializable data class ServerMessage(
     val type: String,
-    val protocolVersion: Int = 1,
+    val protocolVersion: Int = 2,
     val snapshot: TableSnapshot? = null,
     val requestId: String? = null,
     val error: ApiError? = null,

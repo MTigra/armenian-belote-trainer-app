@@ -101,7 +101,7 @@ describe("connection to a sleeping server", () => {
       code: "SERVER_UNAVAILABLE",
     });
     fetch.mockResolvedValue(
-      Response.json({ status: "ok", protocolVersion: "2" }),
+      Response.json({ status: "ok", protocolVersion: "999" }),
     );
     await expect(waitForOnlineServer()).rejects.toMatchObject({
       code: "PROTOCOL_ERROR",

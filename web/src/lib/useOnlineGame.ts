@@ -12,6 +12,8 @@ import {
   createGuest,
   createTable,
   guestStatus,
+  renameGuest,
+  rememberNickname,
   joinTable,
   OnlineFailure,
   rememberGuest,
@@ -210,12 +212,16 @@ export function useOnlineGame(onSaved: (match: SavedMatch) => Promise<void>) {
       socket.current?.close();
     };
   }, []);
-  async function ensureGuest() {
+  async function ensureGuest(nickname: string) {
     const cached = identity.current;
     if (cached?.origin === serverOrigin()) {
       try {
-        await guestStatus(cached);
-        return cached;
+        let status = await guestStatus(cached);
+        if (nickname.trim() && nickname.trim() !== status.nickname)
+          status = await renameGuest(cached, nickname.trim());
+        const value = { ...cached, ...status };
+        persistGuest(value);
+        return value;
       } catch (failure) {
         if (
           !(failure instanceof OnlineFailure) ||
@@ -225,12 +231,13 @@ export function useOnlineGame(onSaved: (match: SavedMatch) => Promise<void>) {
       }
     }
     persistGuest(null);
-    const value = await createGuest();
+    const value = await createGuest(nickname);
     persistGuest(value);
     return value;
   }
   async function enter(
     operation: (value: GuestIdentity) => Promise<TableSnapshot>,
+    nickname: string,
   ) {
     if (entering.current) return false;
     entering.current = true;
@@ -240,7 +247,8 @@ export function useOnlineGame(onSaved: (match: SavedMatch) => Promise<void>) {
     setError("");
     try {
       await waitForOnlineServer(controller.signal);
-      const value = await ensureGuest();
+      rememberNickname(nickname);
+      const value = await ensureGuest(nickname);
       if (controller.signal.aborted) return false;
       const table = await operation(value);
       if (controller.signal.aborted) return false;
@@ -343,9 +351,31 @@ export function useOnlineGame(onSaved: (match: SavedMatch) => Promise<void>) {
     completedMatch: archived.current,
     chat,
     clockOffset: offset.current,
-    create: (name: string, timer: number | null) =>
-      enter((value) => createTable(value, name, timer)),
-    join: (code: string) => enter((value) => joinTable(value, code)),
+    create: (name: string, timer: number | null, nickname = "") =>
+      enter((value) => createTable(value, name, timer), nickname),
+    join: (code: string, nickname = "") =>
+      enter((value) => joinTable(value, code), nickname),
+    updateNickname: async (nickname: string) => {
+      const value = identity.current;
+      if (!value || busy) return false;
+      setBusy(true);
+      try {
+        const status = await renameGuest(value, nickname.trim());
+        rememberNickname(status.nickname);
+        persistGuest({ ...value, ...status });
+        setError("");
+        return true;
+      } catch (failure) {
+        setError(
+          failure instanceof Error
+            ? failure.message
+            : "Не удалось изменить имя.",
+        );
+        return false;
+      } finally {
+        setBusy(false);
+      }
+    },
     command,
     message,
     clearFinished,

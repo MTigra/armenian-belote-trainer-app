@@ -105,9 +105,12 @@ class AuctionTest {
 }
 
 class GameEngineTest {
+    // Golden v0.1 transitions remain covered to protect existing archives and snapshots.
+    private fun legacyStart(deck: List<Card>, dealer: Seat) = GameEngine.start(deck, dealer, LEGACY_PROFILE_VERSION)
+
     @Test fun allCardMovesPreserve32CardsAcrossBothContracts() {
         for(seed in 0..29) for(trump in listOf(null)+Suit.entries) {
-            var s=closeAuction(GameEngine.start(CardRules.shuffledDeck(seed),Seat.entries[seed%4]),trump=trump)
+            var s=closeAuction(legacyStart(CardRules.shuffledDeck(seed),Seat.entries[seed%4]),trump=trump)
             var count=0
             while(s.phase==Phase.PLAYING) {
                 val o=GameEngine.options(s,s.turn);assertTrue(o.cards.isNotEmpty())
@@ -122,14 +125,14 @@ class GameEngineTest {
         }
     }
     @Test fun winnerLeadsNextTrickAndLastTrickAddsTenOnlyOnce() {
-        var s=closeAuction(GameEngine.start(CardRules.shuffledDeck(7),Seat.SOUTH))
+        var s=closeAuction(legacyStart(CardRules.shuffledDeck(7),Seat.SOUTH))
         repeat(4){s=GameEngine.apply(s,GameEngine.automaticAction(s,s.turn))}
         assertEquals(s.tricks.last().winner,s.turn)
         s=finishCards(s)
         for((i,t) in s.tricks.withIndex()) assertEquals(t.plays.sumOf{CardRules.points(it.card,Suit.HEARTS)}+if(i==7)10 else 0,t.cardPoints)
     }
     @Test fun cardNotInHandOrIllegalSuitAndRepeatedPlayAreRejected() {
-        var s=closeAuction(GameEngine.start(CardRules.shuffledDeck(6),Seat.SOUTH))
+        var s=closeAuction(legacyStart(CardRules.shuffledDeck(6),Seat.SOUTH))
         val other=s.hands.getValue(s.turn.next()).first()
         assertFailsWith<IllegalArgumentException>{GameEngine.apply(s,Action.Play(s.turn,other))}
         val play=GameEngine.automaticAction(s,s.turn) as Action.Play
@@ -139,7 +142,7 @@ class GameEngineTest {
         assertFailsWith<IllegalArgumentException>{GameEngine.apply(finished,Action.Pass(finished.turn))}
     }
     @Test fun declarationAnnouncedBeforeFirstCardWithoutExposingItsCards() {
-        var s=closeAuction(GameEngine.start(deckFor(suitHands()),Seat.SOUTH),trump=Suit.SPADES)
+        var s=closeAuction(legacyStart(deckFor(suitHands()),Seat.SOUTH),trump=Suit.SPADES)
         assertTrue(GameEngine.view(s,Seat.SOUTH).publicDeclarations.isEmpty())
         s=GameEngine.apply(s,GameEngine.automaticAction(s,s.turn))
         val events=s.events.takeLast(2)
@@ -149,7 +152,7 @@ class GameEngineTest {
         assertEquals(1,v.publicDeclarations.size);assertTrue(v.shownDeclarations.isEmpty())
     }
     @Test fun onlyWinningDeclarationsShownInSecondTrickIncludingAlreadyPlayedCards() {
-        var s=closeAuction(GameEngine.start(deckFor(suitHands()),Seat.SOUTH),trump=Suit.SPADES)
+        var s=closeAuction(legacyStart(deckFor(suitHands()),Seat.SOUTH),trump=Suit.SPADES)
         repeat(4){s=GameEngine.apply(s,GameEngine.automaticAction(s,s.turn))}
         assertEquals(Seat.WEST,s.turn)
         val previous=s.tricks.single().plays.first().card
@@ -162,7 +165,7 @@ class GameEngineTest {
         assertTrue(s.events.mapNotNull{it.declaration}.all{it.owner.team==Team.EAST_WEST})
     }
     @Test fun blotAndReblotAreAutomaticAndDoNotDependOnOrdinaryDeclarationWin() {
-        val s=finishCards(closeAuction(GameEngine.start(deckFor(suitHands()),Seat.SOUTH),trump=Suit.HEARTS))
+        val s=finishCards(closeAuction(legacyStart(deckFor(suitHands()),Seat.SOUTH),trump=Suit.HEARTS))
         assertEquals(setOf(Seat.NORTH),s.blotCompleted)
         assertEquals(1,s.events.count{it.kind==EventKind.BLOT})
         assertEquals(1,s.events.count{it.kind==EventKind.REBLOT})
@@ -174,7 +177,7 @@ class GameEngineTest {
             Seat.NORTH to listOf(Rank.NINE,Rank.JACK).flatMap{r->Suit.entries.map{Card(it,r)}},
             Seat.WEST to listOf(Rank.TEN,Rank.ACE).flatMap{r->Suit.entries.map{Card(it,r)}},
             Seat.EAST to listOf(Rank.QUEEN,Rank.KING).flatMap{r->Suit.entries.map{Card(it,r)}})
-        val s=finishCards(closeAuction(GameEngine.start(deckFor(hands),Seat.SOUTH),trump=Suit.HEARTS))
+        val s=finishCards(closeAuction(legacyStart(deckFor(hands),Seat.SOUTH),trump=Suit.HEARTS))
         val shown=s.events.mapNotNull{it.declaration}
         assertTrue(shown.all{it.owner.team==Team.NORTH_SOUTH})
         assertEquals(340,shown.sumOf{it.points})
@@ -182,11 +185,11 @@ class GameEngineTest {
         assertEquals(1,s.events.count{it.kind==EventKind.REBLOT})
     }
     @Test fun boiNeverAnnouncesBlot() {
-        val s=finishCards(closeAuction(GameEngine.start(deckFor(suitHands()),Seat.SOUTH),trump=null))
+        val s=finishCards(closeAuction(legacyStart(deckFor(suitHands()),Seat.SOUTH),trump=null))
         assertTrue(s.blotCompleted.isEmpty());assertTrue(s.events.none{it.kind in listOf(EventKind.BLOT,EventKind.REBLOT)})
     }
     @Test fun liveProjectionDoesNotExposeOtherHandsOrUnannouncedDeclarations() {
-        val hands=suitHands();val s=closeAuction(GameEngine.start(deckFor(hands),Seat.SOUTH),trump=Suit.HEARTS)
+        val hands=suitHands();val s=closeAuction(legacyStart(deckFor(hands),Seat.SOUTH),trump=Suit.HEARTS)
         val v=GameEngine.view(s,Seat.SOUTH)
         assertEquals(hands.getValue(Seat.SOUTH),v.hand)
         assertTrue(v.events.none{it.declaration!=null||it.announcement!=null})
@@ -196,7 +199,7 @@ class GameEngineTest {
         assertFailsWith<IllegalArgumentException>{GameEngine.record(s)}
     }
     @Test fun legalOptionsDoNotDependOnHiddenHandDistribution() {
-        val s=closeAuction(GameEngine.start(CardRules.shuffledDeck(2),Seat.SOUTH))
+        val s=closeAuction(legacyStart(CardRules.shuffledDeck(2),Seat.SOUTH))
         val a=s.turn.next();val b=a.next()
         val swapped=s.copy(initialHands=s.initialHands+(a to s.initialHands.getValue(b))+(b to s.initialHands.getValue(a)),
             hands=s.hands+(a to s.hands.getValue(b))+(b to s.hands.getValue(a)))
@@ -204,7 +207,7 @@ class GameEngineTest {
         assertEquals(GameEngine.view(s,s.turn).hand,GameEngine.view(swapped,s.turn).hand)
     }
     @Test fun snapshotJsonRoundTripCanContinueIdentically() {
-        var s=closeAuction(GameEngine.start(CardRules.shuffledDeck(4),Seat.SOUTH))
+        var s=closeAuction(legacyStart(CardRules.shuffledDeck(4),Seat.SOUTH))
         repeat(7){s=GameEngine.apply(s,GameEngine.automaticAction(s,s.turn))}
         val restored=Json.decodeFromString<GameState>(Json.encodeToString(s))
         GameEngine.validate(restored);assertEquals(s,restored);assertEquals(finishCards(s),finishCards(restored))
@@ -218,13 +221,13 @@ class GameEngineTest {
         assertFailsWith<IllegalArgumentException>{GameEngine.nextDeal(state,CardRules.deck())}
     }
     @Test fun replayIncludesAllPassRedeal() {
-        var s=GameEngine.start(CardRules.shuffledDeck(1),Seat.SOUTH)
+        var s=legacyStart(CardRules.shuffledDeck(1),Seat.SOUTH)
         repeat(4){s=GameEngine.apply(s,Action.Pass(s.auction.turn))}
         s=GameEngine.nextDeal(s,CardRules.shuffledDeck(2));s=finishCards(closeAuction(s))
-        assertEquals(s,GameEngine.replay(MatchRecord(setups=s.setups,actions=s.actions)))
+        assertEquals(s,GameEngine.replay(MatchRecord(profileVersion=s.profileVersion,setups=s.setups,actions=s.actions)))
     }
     @Test fun invalidSnapshotAndUnknownVersionsAreRejected() {
-        val s=GameEngine.start(CardRules.deck(),Seat.SOUTH)
+        val s=legacyStart(CardRules.deck(),Seat.SOUTH)
         assertFailsWith<IllegalArgumentException>{GameEngine.validate(s.copy(hands=s.hands+(Seat.SOUTH to emptyList())))}
         assertFailsWith<IllegalArgumentException>{GameEngine.validate(s.copy(profileVersion="future"))}
         assertFailsWith<IllegalArgumentException>{GameEngine.replay(MatchRecord(profileVersion="future",setups=s.setups,actions=emptyList()))}

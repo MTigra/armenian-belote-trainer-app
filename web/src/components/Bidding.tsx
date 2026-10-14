@@ -9,6 +9,7 @@ import type {
 import { SUITS, symbols, suitNames, names, cardKey } from "../lib/types";
 import Icon from "./Icon";
 import PlayingCard from "./PlayingCard";
+import SuitImage from "./SuitImage";
 import { Players } from "./Table";
 export default function Bidding({
   view,
@@ -66,7 +67,9 @@ export default function Bidding({
             {c ? c.amount : "—"}{" "}
             {c &&
               (c.trump ? (
-                <b>{symbols[c.trump]}</b>
+                <b>
+                  <SuitImage suit={c.trump} />
+                </b>
               ) : (
                 <b className="boi-label">бой</b>
               ))}
@@ -152,7 +155,7 @@ export default function Bidding({
                   aria-pressed={suit === s}
                   onClick={() => setSuit(s)}
                 >
-                  {symbols[s]}
+                  <SuitImage suit={s} />
                 </button>
               ))}
               <button

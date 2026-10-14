@@ -13,9 +13,19 @@ import {
 } from "./engine";
 import { importMatch, exportMatch } from "./transfer";
 import type { Session } from "./types";
-function complete(seed = 17): Session {
+function complete(seed = 17, legacy = false): Session {
   let s = newSession(seed, "SOUTH"),
     deals = 0;
+  if (legacy)
+    s.snapshot = replayAt(
+      {
+        profileVersion: "armenian-training-0.1",
+        formatVersion: 1,
+        setups: stateOf(s.snapshot).setups,
+        actions: [],
+      },
+      0,
+    );
   while (stateOf(s.snapshot).phase !== "MATCH_FINISHED") {
     let v = viewOf(s.snapshot);
     s.snapshot = act(s.snapshot, {
@@ -36,6 +46,18 @@ function complete(seed = 17): Session {
   return s;
 }
 describe("React adapter uses real exported Kotlin engine", () => {
+  it("continues and imports legacy automatic-announcement matches without changing their profile", () => {
+    const saved = archive(complete(17, true));
+    const imported = importMatch(exportMatch(saved));
+    expect(imported.record.profileVersion).toBe("armenian-training-0.1");
+    expect(
+      imported.record.actions.some(
+        (a) => a.type === "declare" || a.type === "decline-declarations",
+      ),
+    ).toBe(false);
+    expect(imported.record).toEqual(saved.record);
+    expect(imported.scores).toEqual(saved.scores);
+  });
   it("starts with eight cards, target 301 and no fabricated score", () => {
     const s = newSession(1, "SOUTH");
     const v = viewOf(s.snapshot);
