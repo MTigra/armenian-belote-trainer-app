@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 244">
+<title>J of hearts</title><defs><g id="suit"><path d="M16 30C12 25 1 17 1 9 1-2 13-2 16 6 19-2 31-2 31 9c0 8-11 16-15 21Z"/></g></defs>
+<rect width="168" height="244" rx="10" fill="#fff"/>
+<g fill="#cf292e"><g transform="translate(12 45.788) scale(0.023971 -0.023971)"><path d="M-172 -358V-123H-58Q-55 -222 -11.0 -270.5Q33 -319 121 -319Q240 -319 287.0 -244.0Q334 -169 334 49V1386H102V1493H727V1386H537V41Q537 -206 438.0 -316.0Q339 -426 119 -426Q48 -426 -25.5 -409.0Q-99 -392 -172 -358Z" transform="translate(0 0)"/></g><use href="#suit" transform="translate(33 77)  scale(1.03125) translate(-16 -16)"/><g transform="translate(168 244) rotate(180) scale(.78)"><g transform="translate(12 45.788) scale(0.023971 -0.023971)"><path d="M-172 -358V-123H-58Q-55 -222 -11.0 -270.5Q33 -319 121 -319Q240 -319 287.0 -244.0Q334 -169 334 49V1386H102V1493H727V1386H537V41Q537 -206 438.0 -316.0Q339 -426 119 -426Q48 -426 -25.5 -409.0Q-99 -392 -172 -358Z" transform="translate(0 0)"/></g><use href="#suit" transform="translate(33 77)  scale(1.03125) translate(-16 -16)"/></g><g transform="translate(99 95)"><path d="M-34 50v-10c0-17 12-29 34-29s34 12 34 29v10Z" fill="#cf292e"/>
+      <path d="m-19 19 19 29 19-29-9-6H-10Z" fill="#cfad65"/>
+      <path d="M-18-26h36v26c0 13-8 23-18 23S-18 13-18 0Z" fill="#f0d8b4"/>
+      <path d="M-18-23v23l-6-6v-15c0-12 7-19 24-19s24 7 24 19V-6l-6 6v-23Z" fill="#cf292e"/>
+      <path d="M-24-23c0-12 13-22 26-22 12 0 20 9 22 22Z" fill="#cf292e"/><path d="M9-42 18-60 22-39" fill="#cfad65"/><path d="M-8-7h3M5-7h3M-4 8h8" stroke="#cf292e" stroke-width="2.5" stroke-linecap="round"/></g><g transform="translate(99 149) rotate(180)"><path d="M-34 50v-10c0-17 12-29 34-29s34 12 34 29v10Z" fill="#cf292e"/>
+      <path d="m-19 19 19 29 19-29-9-6H-10Z" fill="#cfad65"/>
+      <path d="M-18-26h36v26c0 13-8 23-18 23S-18 13-18 0Z" fill="#f0d8b4"/>
+      <path d="M-18-23v23l-6-6v-15c0-12 7-19 24-19s24 7 24 19V-6l-6 6v-23Z" fill="#cf292e"/>
+      <path d="M-24-23c0-12 13-22 26-22 12 0 20 9 22 22Z" fill="#cf292e"/><path d="M9-42 18-60 22-39" fill="#cfad65"/><path d="M-8-7h3M5-7h3M-4 8h8" stroke="#cf292e" stroke-width="2.5" stroke-linecap="round"/></g></g>
+</svg>

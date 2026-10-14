@@ -19,13 +19,12 @@ def publish():
     previous = api("git/ref/heads/gh-pages")["object"]["sha"]
     base_tree = api(f"git/commits/{previous}")["tree"]["sha"]
     files = []
-    for path in sorted((ROOT / "docs/design-v3").iterdir()):
+    preview = ROOT / "docs/design-v3"
+    for path in sorted(preview.rglob("*")):
         if not path.is_file():
             continue
         data = path.read_bytes()
-        if path.name == "app.js":
-            data = data.replace(b"../../web/public/cards/", b"../cards/")
-        files.append((f"design-v3/{path.name}", data))
+        files.append((f"design-v3/{path.relative_to(preview).as_posix()}", data))
     for path in sorted((ROOT / "previews/design-v3").glob("*.png")):
         files.append((f"design-v3/previews/{path.name}", path.read_bytes()))
     entries = []

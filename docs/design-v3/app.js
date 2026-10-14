@@ -1,5 +1,5 @@
 // Isolated visual prototype: no game rules, sockets, guest storage or production changes.
-const CARD_BASE = "../../web/public/cards/";
+const CARD_BASE = "./cards/";
 const glyphs = { CLUBS: "♣", DIAMONDS: "♦", HEARTS: "♥", SPADES: "♠" };
 const suitOrder = ["CLUBS", "DIAMONDS", "HEARTS", "SPADES"];
 const trumpRanks = ["JACK", "NINE", "ACE", "TEN", "KING", "QUEEN", "EIGHT", "SEVEN"];

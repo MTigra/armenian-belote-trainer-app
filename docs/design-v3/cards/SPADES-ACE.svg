@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 244">
+<title>A of spades</title><defs><g id="suit"><path d="M16 0C11 7 1 13 1 21c0 9 11 11 15 3 4 8 15 6 15-3 0-8-10-14-15-21Z"/><path d="M14 21h4c0 4 2 8 5 11H9c3-3 5-7 5-11Z"/></g></defs>
+<rect width="168" height="244" rx="10" fill="#fff"/>
+<g fill="#121719"><g transform="translate(12 56.000) scale(0.028398 -0.030810)"><path d="M410 541H958L684 1251ZM-12 0V106H119L651 1493H819L1352 106H1499V0H956V106H1122L997 434H369L244 106H408V0Z" transform="translate(0 0)"/></g><use href="#suit" transform="translate(33 77)  scale(1.03125) translate(-16 -16)"/><g transform="translate(168 244) rotate(180) scale(.78)"><g transform="translate(12 56.000) scale(0.028398 -0.030810)"><path d="M410 541H958L684 1251ZM-12 0V106H119L651 1493H819L1352 106H1499V0H956V106H1122L997 434H369L244 106H408V0Z" transform="translate(0 0)"/></g><use href="#suit" transform="translate(33 77)  scale(1.03125) translate(-16 -16)"/></g><use href="#suit" transform="translate(96 122)  scale(2.0625) translate(-16 -16)"/></g>
+</svg>

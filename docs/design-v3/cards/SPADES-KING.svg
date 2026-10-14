@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 244">
+<title>K of spades</title><defs><g id="suit"><path d="M16 0C11 7 1 13 1 21c0 9 11 11 15 3 4 8 15 6 15-3 0-8-10-14-15-21Z"/><path d="M14 21h4c0 4 2 8 5 11H9c3-3 5-7 5-11Z"/></g></defs>
+<rect width="168" height="244" rx="10" fill="#fff"/>
+<g fill="#121719"><g transform="translate(12 56.000) scale(0.027451 -0.030810)"><path d="M113 0V106H303V1386H113V1493H696V1386H506V821L1149 1386H987V1493H1483V1386H1315L674 823L1391 106H1561V0H1214L506 709V106H696V0Z" transform="translate(0 0)"/></g><use href="#suit" transform="translate(33 77)  scale(1.03125) translate(-16 -16)"/><g transform="translate(168 244) rotate(180) scale(.78)"><g transform="translate(12 56.000) scale(0.027451 -0.030810)"><path d="M113 0V106H303V1386H113V1493H696V1386H506V821L1149 1386H987V1493H1483V1386H1315L674 823L1391 106H1561V0H1214L506 709V106H696V0Z" transform="translate(0 0)"/></g><use href="#suit" transform="translate(33 77)  scale(1.03125) translate(-16 -16)"/></g><g transform="translate(99 95)"><path d="M-34 50v-10c0-17 12-29 34-29s34 12 34 29v10Z" fill="#121719"/>
+      <path d="m-19 19 19 29 19-29-9-6H-10Z" fill="#cfad65"/>
+      <path d="M-18-26h36v26c0 13-8 23-18 23S-18 13-18 0Z" fill="#f0d8b4"/>
+      <path d="M-18-23v23l-6-6v-15c0-12 7-19 24-19s24 7 24 19V-6l-6 6v-23Z" fill="#121719"/>
+      <path d="m-24-23-3-19 15 10L0-48l12 16 15-10-3 19Z" fill="#cfad65"/><path d="M-8-7h3M5-7h3M-4 8h8" stroke="#121719" stroke-width="2.5" stroke-linecap="round"/><path d="M-14 8 0 30 14 8 8 16H-8Z" fill="#121719"/></g><g transform="translate(99 149) rotate(180)"><path d="M-34 50v-10c0-17 12-29 34-29s34 12 34 29v10Z" fill="#121719"/>
+      <path d="m-19 19 19 29 19-29-9-6H-10Z" fill="#cfad65"/>
+      <path d="M-18-26h36v26c0 13-8 23-18 23S-18 13-18 0Z" fill="#f0d8b4"/>
+      <path d="M-18-23v23l-6-6v-15c0-12 7-19 24-19s24 7 24 19V-6l-6 6v-23Z" fill="#121719"/>
+      <path d="m-24-23-3-19 15 10L0-48l12 16 15-10-3 19Z" fill="#cfad65"/><path d="M-8-7h3M5-7h3M-4 8h8" stroke="#121719" stroke-width="2.5" stroke-linecap="round"/><path d="M-14 8 0 30 14 8 8 16H-8Z" fill="#121719"/></g></g>
+</svg>
