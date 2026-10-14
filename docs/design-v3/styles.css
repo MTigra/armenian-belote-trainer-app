@@ -174,3 +174,30 @@ body.focused .scene-landscape .board { transform:scale(var(--focus-landscape-sca
 
 .proof-board .trick { top:438px; }
 .live-notice.proof .proof-cards img { width:38px; height:55px; }
+
+.avatar-shell { position:relative; width:58px; height:58px; margin:0 auto 7px; --clock-color:#9ad8ac; }
+.avatar-shell > .avatar { position:absolute; width:48px; height:48px; left:5px; top:5px; margin:0; }
+.player-clock { position:absolute; inset:0; width:100%; height:100%; fill:none; pointer-events:none; opacity:0; }
+.clock-track { stroke:#c4d7b42e; stroke-width:2.6; }
+.clock-ring { stroke:var(--clock-color); stroke-width:2.6; stroke-linecap:round; transition:stroke-dashoffset .9s linear,stroke .25s ease; }
+.clock-count { display:none; position:absolute; right:-1px; bottom:-1px; min-width:20px; height:20px; border:1px solid var(--clock-color); border-radius:50%; background:#103c2e; color:var(--clock-color); font:600 9px/18px system-ui,sans-serif; z-index:2; }
+.avatar-shell[data-active="true"] .player-clock { opacity:1; }
+.avatar-shell[data-active="true"] .clock-count { display:block; }
+.avatar-shell[data-urgency="warning"] { --clock-color:#ecc573; }
+.avatar-shell[data-urgency="critical"] { --clock-color:#f4997d; }
+.self-player { display:flex; align-items:center; justify-content:center; gap:9px; position:absolute; left:50%; bottom:163px; transform:translateX(-50%); width:160px; min-height:58px; }
+.self-player .avatar-shell { margin:0; flex:none; }
+.self-player .avatar { font-size:23px; }
+.self-player strong { font-size:12px; font-weight:500; }
+.self-status { display:block; margin-top:4px; font-size:10px; color:#b8d5be; white-space:nowrap; }
+.scene-landscape .player-north .avatar-shell { width:44px; height:44px; margin:0; }
+.scene-landscape .player-north .avatar { width:34px; height:34px; left:5px; top:5px; font-size:20px; }
+.scene-landscape .self-player { bottom:105px; left:170px; width:92px; flex-direction:column; gap:3px; }
+.scene-landscape .self-player .avatar-shell { width:44px; height:44px; }
+.scene-landscape .self-player .avatar { width:34px; height:34px; left:5px; top:5px; font-size:19px; }
+.scene-landscape .self-player > div:last-child { text-align:center; }
+.scene-landscape .self-player strong { font-size:10px; }
+.scene-landscape .self-status { margin-top:1px; font-size:9px; }
+.scene-landscape .player-north { width:214px; }
+.scene-landscape .self-player { bottom:15px; left:152px; width:62px; }
+.scene-landscape .self-status { display:none; }
