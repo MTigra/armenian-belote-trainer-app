@@ -1,0 +1,442 @@
+# Object Calisthenics Skill
+
+Применяйте принципы Object Calisthenics во время написания кода typescript.
+
+## 9 Принципов
+
+### 1. Один уровень отступа в методе
+
+**Правило:** В методах должен быть только один уровень отступа (без вложенных if/for/while внутри других блоков).
+
+**Почему:** Глубокая вложенность делает код трудным для чтения и указывает на то, что метод делает слишком много.
+
+**Как:**
+- Выносите вложенную логику в отдельные методы
+- Используйте ранние возвраты для уменьшения вложенности
+- Используйте guard clauses вместо цепочек if-else
+
+**Пример:**
+```typescript
+// ПЛОХО
+function processUser(user: User): string {
+  if (user.isActive) {
+    for (const order of user.orders) {
+      if (order.total > 100) {
+        return "premium";
+      }
+    }
+  }
+  return "standard";
+}
+
+// ХОРОШО
+function processUser(user: User): string {
+  if (!user.isActive) return "standard";
+  return hasPremiumOrder(user.orders) ? "premium" : "standard";
+}
+
+function hasPremiumOrder(orders: Order[]): boolean {
+  return orders.some(order => order.total > 100);
+}
+```
+
+---
+
+### 2. Не используйте ELSE
+
+**Правило:** Никогда не используйте ключевое слово `else`.
+
+**Почему:** Ветки else создают ненужную когнитивную нагрузку. Большинство блоков else можно устранить с помощью ранних возвратов.
+
+**Как:**
+- Используйте ранние возвраты для негативных условий
+- Используйте guard clauses
+- Выносите логику в отдельные методы
+
+**Пример:**
+```typescript
+// ПЛОХО
+function calculateDiscount(user: User): number {
+  if (user.isPremium) {
+    return 0.2;
+  } else {
+    return 0.1;
+  }
+}
+
+// ХОРОШО
+function calculateDiscount(user: User): number {
+  if (user.isPremium) return 0.2;
+  return 0.1;
+}
+```
+
+---
+
+### 3. Оборачивайте все примитивные типы и строки
+
+**Правило:** Не используйте примитивные типы напрямую. Оборачивайте их в предметно-ориентированные объекты-значения.
+
+**Почему:** Примитивы лишены поведения и валидации. Обёртка добавляет типобезопасность и предметный смысл.
+
+**Как:**
+- Создавайте объекты-значения для строк, чисел, дат
+- Добавляйте валидацию в конструкторы
+- Предоставляйте предметные методы на объектах-значениях
+
+**Пример:**
+```typescript
+// ПЛОХО
+function createUser(name: string, age: number, email: string): User {
+  return { name, age, email };
+}
+
+// ХОРОШО
+class Username {
+  constructor(public readonly value: string) {
+    if (value.length < 3) throw new Error("Username too short");
+  }
+}
+
+class Age {
+  constructor(public readonly value: number) {
+    if (value < 0 || value > 150) throw new Error("Invalid age");
+  }
+}
+
+class Email {
+  constructor(public readonly value: string) {
+    if (!value.includes('@')) throw new Error("Invalid email");
+  }
+}
+
+function createUser(name: Username, age: Age, email: Email): User {
+  return { name, age, email };
+}
+```
+
+---
+
+### 4. Оборачивайте коллекции
+
+**Правило:** Никогда не暴露ляйте сырые коллекции. Оборачивайте их в предметно-ориентированные классы коллекций.
+
+**Почему:** Сырые массивы/объекты泄露ют детали реализации. Обёрнутые коллекции могут иметь предметные методы.
+
+**Как:**
+- Создавайте классы коллекций, которые расширяют или оборачивают массивы
+- Добавляйте предметно-специфичные методы
+- Предотвращайте прямую мутацию
+
+**Пример:**
+```typescript
+// ПЛОХО
+class Order {
+  items: OrderItem[] = [];
+  addItem(item: OrderItem): void {
+    this.items.push(item);
+  }
+}
+
+// ХОРОШО
+class OrderItems {
+  constructor(private readonly items: OrderItem[] = []) {}
+
+  add(item: OrderItem): OrderItems {
+    return new OrderItems([...this.items, item]);
+  }
+
+  total(): number {
+    return this.items.reduce((sum, item) => sum + item.price, 0);
+  }
+
+  count(): number {
+    return this.items.length;
+  }
+}
+
+class Order {
+  constructor(private readonly items: OrderItems = new OrderItems()) {}
+
+  addItem(item: OrderItem): Order {
+    return new Order(this.items.add(item));
+  }
+}
+```
+
+---
+
+### 5. Одна точка в строке (Закон Деметры)
+
+**Правило:** Никогда не используйте более одного оператора точки в одном выражении.
+
+**Почему:** Длинные цепочки создают сильную связанность и暴露ют внутреннюю структуру.
+
+**Как:**
+- Делегируйте поведение самому объекту
+- Используйте цепочки методов на одном объекте
+- Спрашивайте, не рассказывайте
+
+**Пример:**
+```typescript
+// ПЛОХО
+const city = user.address.city.name;
+const zip = order.customer.address.getZipCode();
+
+// ХОРОШО
+const city = user.getCity();
+const zip = order.getCustomerZip();
+
+class User {
+  getCity(): string {
+    return this.address.getCityName();
+  }
+}
+
+class Order {
+  getCustomerZip(): string {
+    return this.customer.getZipCode();
+  }
+}
+```
+
+---
+
+### 6. Не используйте аббревиатуры
+
+**Правило:** Не сокращайте имена. Используйте полные, описательные слова.
+
+**Почему:** Аббревиатуры создают неоднозначность и требуют ментального перевода.
+
+**Как:**
+- Используйте полные слова: `command` не `cmd`, `message` не `msg`
+- Исключение: общеизвестные аббревиатуры (ID, URL, API)
+- Будьте последовательны в кодовой базе
+
+**Пример:**
+```typescript
+// ПЛОХО
+function calcAvgTemp(data: number[]): number {
+  let sum = 0;
+  for (const n of data) sum += n;
+  return sum / data.length;
+}
+
+// ХОРОШО
+function calculateAverageTemperature(temperatures: number[]): number {
+  const sum = temperatures.reduce((acc, temp) => acc + temp, 0);
+  return sum / temperatures.length;
+}
+```
+
+---
+
+### 7. Сохраняйте все сущности маленькими
+
+**Правило:** Классы должны быть маленькими. Методы должны быть маленькими. Файлы должны быть маленькими.
+
+**Почему:** Маленькие единицы легче понимать, тестировать и поддерживать.
+
+**Как:**
+- Выносите методы, когда они превышают 10-15 строк
+- Разделяйте классы, у которых несколько ответственностей
+- Держите файлы до 200 строк, когда возможно
+
+**Гайдлайны:**
+- Методы: < 10 строк
+- Классы: < 200 строк
+- Файлы: < 200 строк
+- Параметры: < 4
+
+---
+
+### 8. В классе не больше двух свойств
+
+**Правило:** У класса должно быть не более двух переменных экземпляра.
+
+**Почему:** Более двух полей часто указывает на то, что класс делает слишком много.
+
+**Как:**
+- Выносите группы полей в объекты-значения
+- Используйте композицию вместо агрегации
+- Разделяйте на меньшие классы
+
+**Пример:**
+```typescript
+// ПЛОХО
+class Person {
+  firstName: string;
+  lastName: string;
+  street: string;
+  city: string;
+  zipCode: string;
+  age: number;
+  email: string;
+  phone: string;
+}
+
+// ХОРОШО
+class Name {
+  constructor(
+    public readonly firstName: string,
+    public readonly lastName: string
+  ) {}
+}
+
+class Address {
+  constructor(
+    public readonly street: string,
+    public readonly city: string,
+    public readonly zipCode: string
+  ) {}
+}
+
+class ContactInfo {
+  constructor(
+    public readonly email: string,
+    public readonly phone: string
+  ) {}
+}
+
+class Person {
+  constructor(
+    public readonly name: Name,
+    public readonly address: Address
+  ) {}
+}
+```
+
+---
+
+### 9. У свойств нет геттеров/сеттеров
+
+**Правило:** Не暴露ляйте внутреннее состояние через геттеры и сеттеры.
+
+**Почему:** Геттеры/сеттеры暴露ют детали реализации и поощряют процедурный код.
+
+**Как:**
+- Предоставляйте методы поведения вместо доступа к данным
+- Держите состояние приватным
+- Используйте разделение команд и запросов
+
+**Пример:**
+```typescript
+// ПЛОХО
+class BankAccount {
+  private balance: number = 0;
+
+  getBalance(): number {
+    return this.balance;
+  }
+
+  setBalance(amount: number): void {
+    this.balance = amount;
+  }
+}
+
+// ХОРОШО
+class BankAccount {
+  private balance: Money = new Money(0);
+
+  deposit(amount: Money): void {
+    if (amount.isNegative()) throw new Error("Cannot deposit negative amount");
+    this.balance = this.balance.add(amount);
+  }
+
+  withdraw(amount: Money): void {
+    if (this.balance.isLessThan(amount)) throw new Error("Insufficient funds");
+    this.balance = this.balance.subtract(amount);
+  }
+
+  hasSufficientFunds(amount: Money): boolean {
+    return this.balance.isGreaterThanOrEqual(amount);
+  }
+}
+```
+
+---
+
+### 10. У всех классов есть состояние
+
+**Правило:** Каждый класс должен поддерживать некоторое внутреннее состояние.
+
+**Почему:** Классы без состояния часто являются утилитами, которые должны быть функциями.
+
+**Как:**
+- Если у класса нет состояния, рассмотрите возможность сделать его функцией
+- Убедитесь, что классы инкапсулируют данные и поведение вместе
+
+**Пример:**
+```typescript
+// ПЛОХО - Класс утилит без состояния
+class MathUtils {
+  static add(a: number, b: number): number {
+    return a + b;
+  }
+
+  static multiply(a: number, b: number): number {
+    return a * b;
+  }
+}
+
+// ХОРОШО - Класс с состоянием
+class Calculator {
+  private result: number = 0;
+
+  add(value: number): Calculator {
+    this.result += value;
+    return this;
+  }
+
+  multiply(value: number): Calculator {
+    this.result *= value;
+    return this;
+  }
+
+  getResult(): number {
+    return this.result;
+  }
+
+  reset(): Calculator {
+    this.result = 0;
+    return this;
+  }
+}
+```
+
+---
+
+## Рабочий процесс
+
+### При написании нового кода
+
+1. Задавайте уточняющие вопросы, если требования неясны
+2. Проектируйте с учетом принципов с самого начала
+3. Пишите маленькие, сфокусированные классы и методы
+4. Используйте объекты-значения для примитивов
+5. Оборачивайте коллекции
+6. Держите методы плоскими (один уровень отступа)
+7. Избегайте веток else
+8. Используйте описательные имена
+
+### При рефакторинге существующего кода
+
+1. Определите, какие принципы нарушены
+2. Расставьте приоритеты нарушений по влиянию на читаемость/поддерживаемость
+3. Рефакторьте инкрементально
+4. Объясняйте каждое изменение и какой принцип оно адресует
+5. Убедитесь, что тесты проходят после каждого шага рефакторинга
+
+---
+
+## Когда использовать
+
+Используйте этот скилл, когда пользователь говорит:
+- "напиши код"
+- "рефакторинг"
+- "реализуй"
+- "создай класс"
+- "добавь метод"
+- "почисти этот код"
+- "примени лучшие практики"
+- "object calisthenics"
