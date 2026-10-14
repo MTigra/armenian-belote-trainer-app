@@ -208,6 +208,7 @@ export default function App() {
             )}
             {screen === "online" && (
               <OnlineGame
+                coachOpen={Boolean(coach?.online)}
                 game={online}
                 onBack={() => go("menu")}
                 onCoach={(view, cursor) => openCoach(view, cursor, false, true)}
@@ -245,6 +246,7 @@ export default function App() {
                 />
               ) : (
                 <Table
+                  overlaid={Boolean(coach) || modal !== null}
                   view={game.view}
                   onDeclarations={() => setModal("declarations")}
                   onDeclarationChoice={(show) =>

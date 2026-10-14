@@ -171,6 +171,35 @@ test("four guests play online, resume their own seat, keep coach independent and
       expect(value.view).not.toHaveProperty("initialHands");
       expect(value.view).not.toHaveProperty("hands");
     }
+    // One server deadline is shown at the actor's relative seat in every guest's view.
+    const seats = ["SOUTH", "WEST", "NORTH", "EAST"];
+    for (let index = 0; index < pages.length; index++) {
+      const value = views[index];
+      const relative =
+        seats[
+          (seats.indexOf(value.view.auction.turn) -
+            seats.indexOf(value.selfSeat) +
+            4) %
+            4
+        ];
+      await expect(
+        pages[index].locator('.blot-seat[data-active="true"]'),
+      ).toHaveAttribute("data-seat", relative);
+      if (value.timerSeconds === null) {
+        await expect(pages[index].locator(".blot-clock-count")).toHaveCount(0);
+      } else {
+        const seconds = Number(
+          await pages[index]
+            .locator(".blot-clock-count")
+            .textContent({ timeout: 12000 }),
+        );
+        expect(seconds).toBeGreaterThan(0);
+        expect(seconds).toBeLessThanOrEqual(value.timerSeconds);
+      }
+      await expect(
+        pages[index].getByLabel("Наши очки раздачи", { exact: true }),
+      ).toBeVisible();
+    }
     await pages[1].getByLabel("Количество очков заявки").fill("400");
     await pages[1]
       .getByRole("button", { name: "Заявить 400 ♥", exact: true })
@@ -221,6 +250,7 @@ test("four guests play online, resume their own seat, keep coach independent and
       "прошлый момент",
     );
     await pages[2]
+      .getByRole("dialog", { name: "Чат с тренером" })
       .getByRole("button", { name: "Закрыть", exact: true })
       .click();
     const limit = Date.now() + 60000;

@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type {
   Action,
   PlayerView,
@@ -6,11 +6,10 @@ import type {
   Seat,
   PlayerPresence,
 } from "../lib/types";
-import { SUITS, symbols, suitNames, names, cardKey } from "../lib/types";
+import { SUITS, symbols, suitNames, names } from "../lib/types";
 import Icon from "./Icon";
-import PlayingCard from "./PlayingCard";
 import SuitImage from "./SuitImage";
-import { Players } from "./Table";
+import GameTableShell, { type TableClock } from "./GameTableShell";
 export default function Bidding({
   view,
   onAction,
@@ -19,6 +18,8 @@ export default function Bidding({
   labels = names,
   status,
   presence,
+  clock,
+  animate = true,
 }: {
   view: PlayerView;
   onAction: (a: Action) => void;
@@ -27,6 +28,8 @@ export default function Bidding({
   labels?: Record<Seat, string>;
   status?: ReactNode;
   presence?: PlayerPresence;
+  clock?: TableClock;
+  animate?: boolean;
 }) {
   const [suit, setSuit] = useState<Suit | null>("HEARTS"),
     [amount, setAmount] = useState(8),
@@ -44,79 +47,37 @@ export default function Bidding({
     amount >= min &&
     amount <= 2147483647 &&
     (!caput || amount >= 26);
-  const c = view.auction.contract;
   return (
-    <div className="bid-layout">
-      <div className="bid-table">
-        <div className="felt-grain" />
-        <button
-          className="icon-button game-menu-button"
-          onClick={onMenu}
-          aria-label="Меню партии"
-        >
-          <Icon name="menu" />
-        </button>
-        <div className="bid-table-heading">
-          <h1>{view.phase === "REDOUBLE" ? "Ответ на контру" : "Торговля"}</h1>
-          <span>Раздача {view.dealNumber}</span>
+    <GameTableShell
+      view={view}
+      onMenu={onMenu}
+      onCoach={onCoach}
+      labels={labels}
+      presence={presence}
+      clock={clock}
+      status={status}
+      animate={animate}
+    >
+      <div className="bid-controls blot-bidding" aria-label="Торговля">
+        <div className="blot-current-bid">
+          <span>
+            {view.auction.contract
+              ? `Заявка: ${labels[view.auction.contract.bidder]}`
+              : "Заявок пока нет"}
+          </span>
+          <b>
+            {view.auction.contract?.amount ?? "—"}{" "}
+            {view.auction.contract?.trump ? (
+              <SuitImage suit={view.auction.contract.trump} />
+            ) : view.auction.contract ? (
+              "Бой"
+            ) : (
+              ""
+            )}
+            {view.auction.multiplier > 1 ? ` ×${view.auction.multiplier}` : ""}
+            {view.auction.contract?.promisedCaput ? " · капут" : ""}
+          </b>
         </div>
-        <Players view={view} bidding labels={labels} presence={presence} />
-        <div className="current-bid">
-          <span>{c ? "Текущая заявка" : "Заявок пока нет"}</span>
-          <strong>
-            {c ? c.amount : "—"}{" "}
-            {c &&
-              (c.trump ? (
-                <b>
-                  <SuitImage suit={c.trump} />
-                </b>
-              ) : (
-                <b className="boi-label">бой</b>
-              ))}
-          </strong>
-          <p>
-            {c ? labels[c.bidder] : ""}
-            {view.auction.multiplier > 1
-              ? ` · ×${view.auction.multiplier}`
-              : ""}
-            {c?.promisedCaput ? " · капут" : ""}
-          </p>
-        </div>
-        {status && <div className="online-status">{status}</div>}
-        <div className="bid-your-turn">
-          <span className="turn-dot" />
-          {view.phase === "REDOUBLE"
-            ? "Команда отвечает на контру"
-            : view.auction.turn === "SOUTH"
-              ? "Ваша очередь"
-              : `Слово: ${labels[view.auction.turn]}`}
-        </div>
-        <div
-          className="bid-hand"
-          aria-label="Ваши карты во время торговли"
-          data-count={view.hand.length}
-          style={
-            {
-              "--hand-count": view.hand.length,
-              "--hand-gaps": Math.max(1, view.hand.length - 1),
-            } as CSSProperties
-          }
-        >
-          {view.hand.map((c, i) => (
-            <PlayingCard
-              key={cardKey(c)}
-              card={c}
-              index={i}
-              total={view.hand.length}
-            />
-          ))}
-        </div>
-        <button className="bid-coach" onClick={onCoach}>
-          <Icon name="spark" />
-          Спросить тренера
-        </button>
-      </div>
-      <div className="bid-controls">
         {view.phase === "REDOUBLE" ? (
           <>
             <h2>Контра</h2>
@@ -230,15 +191,15 @@ export default function Bidding({
               >
                 Заявить {amount} {suit ? symbols[suit] : "бой"}
               </button>
+              {view.options.mayDouble && (
+                <button
+                  className="double-button"
+                  onClick={() => onAction({ type: "double", seat: "SOUTH" })}
+                >
+                  Контра
+                </button>
+              )}
             </div>
-            {view.options.mayDouble && (
-              <button
-                className="double-button"
-                onClick={() => onAction({ type: "double", seat: "SOUTH" })}
-              >
-                Контра
-              </button>
-            )}
             <p className="bid-help">
               {min === null
                 ? "Ожидаем остальных игроков."
@@ -247,6 +208,6 @@ export default function Bidding({
           </>
         )}
       </div>
-    </div>
+    </GameTableShell>
   );
 }

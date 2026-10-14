@@ -1,3 +1,4 @@
+import type { Seat } from "../lib/types";
 import { useState, useEffect } from "react";
 import { downloadMatch } from "../lib/transfer";
 import type { ChatMessage, PlayerView } from "../lib/types";
@@ -8,6 +9,7 @@ import {
   playerNames,
   playerPresence,
   presentView,
+  relativeSeat,
 } from "../lib/presentation";
 import Table from "./Table";
 import Bidding from "./Bidding";
@@ -20,8 +22,10 @@ export default function OnlineGame({
   game,
   onBack,
   onCoach,
+  coachOpen = false,
 }: {
   game: OnlineGameController;
+  coachOpen?: boolean;
   onBack: () => void;
   onCoach: (view: PlayerView, cursor: number) => void;
 }) {
@@ -66,6 +70,16 @@ export default function OnlineGame({
       mayDeclineDeclarations: false,
     };
   const status = <OnlineStatus game={game} />;
+  const clock = {
+    deadlines: Object.fromEntries(
+      Object.entries(snapshot.deadlines).map(([seat, deadline]) => [
+        relativeSeat(seat as Seat, snapshot.selfSeat),
+        deadline,
+      ]),
+    ),
+    timerSeconds: snapshot.timerSeconds,
+    offset: game.clockOffset,
+  };
   const terminal = [
     "REDEAL_REQUIRED",
     "DEAL_FINISHED",
@@ -85,6 +99,8 @@ export default function OnlineGame({
           labels={labels}
           presence={playerPresence(snapshot)}
           status={status}
+          clock={clock}
+          animate={game.connection === "connected"}
           onMenu={() => setMenu(true)}
           onCoach={() => onCoach(snapshot.view!, snapshot.actionCount)}
           onAction={(action) =>
@@ -97,8 +113,10 @@ export default function OnlineGame({
           labels={labels}
           presence={playerPresence(snapshot)}
           online
-          animate={game.connection === "connected"}
+          overlaid={coachOpen || menu}
           status={status}
+          clock={clock}
+          animate={game.connection === "connected"}
           onMenu={() => setMenu(true)}
           onCoach={() => onCoach(snapshot.view!, snapshot.actionCount)}
           onDeclarations={() => setDeclarations(true)}

@@ -1,7 +1,8 @@
 import type { PlayerView, Seat } from "../lib/types";
-import { dealEvents, names, ranks, cardKey } from "../lib/types";
+import { dealEvents, names, cardKey } from "../lib/types";
 import PlayingCard from "./PlayingCard";
 import Modal from "./Modal";
+import { declarationTitle } from "../lib/tablePresentation";
 export default function Announcements({
   view,
   onClose,
@@ -24,12 +25,7 @@ export default function Announcements({
           <div className="announcement-row" key={index}>
             <strong>{labels[a.owner]}</strong>
             <p>
-              {a.kind === "FOUR_EIGHTS"
-                ? "Четыре восьмёрки"
-                : a.kind === "FOUR"
-                  ? `Рамка ${ranks[a.highRank]}`
-                  : `Последовательность ${a.points / 10}`}{" "}
-              · {a.points / 10} очков
+              {declarationTitle(a)} · {a.points} очков раздачи
             </p>
             {cards.length ? (
               cards.map((d, i) => (

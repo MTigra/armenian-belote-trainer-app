@@ -66,3 +66,13 @@ Vitest проверяет адаптер, IndexedDB, обмен архивами
 E2E_BASE_URL=https://armenian-blot.onrender.com/ E2E_API_URL=https://armenian-blot.onrender.com pnpm --filter @blot/web test:e2e -- online.spec.ts
 E2E_BASE_URL=https://mtigra.github.io/armenian-belote-trainer-app/ E2E_API_URL=https://armenian-blot.onrender.com E2E_USE_DEFAULT_API=1 pnpm --filter @blot/web test:e2e -- online.spec.ts
 ```
+
+## Согласованный игровой UI (P22)
+
+Торговля и розыгрыш используют общий `GameTableShell`. Портретный каркас и
+токены — `src/game-table.css`, ландшафт — `src/game-table-landscape.css`.
+`useOrientation` меняет композицию без сброса партии. Допустимость карты
+берётся из движка; сортировка в `tablePresentation.ts` только визуальная.
+Объявления читают новые публичные события, таймер — сроки Ktor с поправкой
+часов и относительным местом гостя. UI не вводит отдельные правила.
+[Критерии и проверки](../docs/testing/table-redesign.md).

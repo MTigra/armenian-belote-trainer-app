@@ -12,3 +12,13 @@ DejaVu Serif Bold. DejaVu font license is in `web/public/cards/FONT-LICENSE`.
 Generated SVGs are committed and require no tooling at build/runtime.
 Regenerate with Python 3 + fonttools + DejaVu Serif Bold:
 `python3 scripts/extract-card-images.py`.
+
+## Clean deck used by the redesigned client (P22)
+
+`python3 scripts/create-minimal-preview-cards.py --game` writes the current
+32 faces and four suits to `web/public/cards`; without `--game`, it writes
+the isolated prototype. Indices are outlined DejaVu Serif, pips are original
+geometric artwork, and J/Q/K retain the two classic court portraits from
+the pinned SVG-cards source, repositioned without the interior frame.
+The original LGPL license, authors and font license remain distributed.
+The earlier extraction script is kept for the original deck, not the current style.

@@ -75,7 +75,7 @@ button:focus-visible { outline:3px solid #fff; outline-offset:3px; }
 .hand { --card-w:84px; --card-h:122px; --count:8; --step:calc((100% - var(--card-w))/(var(--count) - 1)); position:absolute; bottom:31px; left:16px; right:16px; height:var(--card-h); display:flex; overflow:visible; }
 .hand-card { position:absolute; width:var(--card-w); height:var(--card-h); left:calc(var(--index) * var(--step)); bottom:0; transform:translateY(calc(var(--curve) * 1px)) rotate(calc(var(--angle) * 1deg)); padding:0; border:1px solid #cfcab8; background:#fff; border-radius:6px; box-shadow:0 3px 9px #0005; overflow:hidden; }
 .hand-card img { display:block; width:100%; height:100%; object-fit:fill; }
-.hand-card.unavailable img { filter:brightness(.66); }
+.hand-card.unavailable img { filter:brightness(.8); }
 .hand-card.unavailable { cursor:default; opacity:1; }
 .hand-card.trump { border:2px solid #efc75d; box-shadow:0 0 0 1px #edc56a66,0 0 10px #d7b45744,0 3px 9px #0005; }
 .hand-card.trump::after { content:""; position:absolute; inset:0; background:#edc25717; mix-blend-mode:multiply; pointer-events:none; }

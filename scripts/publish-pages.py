@@ -30,11 +30,19 @@ def publish():
     files = [(str(path.relative_to(DIST)), path.read_bytes())
              for path in sorted(DIST.rglob("*")) if path.is_file()]
     files.append((".nojekyll", b""))
+    base_tree = api(f"git/commits/{previous}")["tree"]["sha"] if previous else None
     tree = []
     for name, data in files:
         blob = api("git/blobs", {"content": base64.b64encode(data).decode(), "encoding": "base64"})
         tree.append({"path": name, "mode": "100644", "type": "blob", "sha": blob["sha"]})
-    tree_sha = api("git/trees", {"tree": tree})["sha"]
+    if base_tree:
+        current = api(f"git/trees/{base_tree}?recursive=1")["tree"]
+        paths = {name for name, _ in files}
+        # Preserve the separately published design prototype, remove obsolete app bundles.
+        tree.extend({"path": entry["path"], "mode": "100644", "type": "blob", "sha": None}
+                    for entry in current if entry["type"] == "blob"
+                    and not entry["path"].startswith("design-v3/") and entry["path"] not in paths)
+    tree_sha = api("git/trees", {"base_tree": base_tree, "tree": tree} if base_tree else {"tree": tree})["sha"]
     commit = api("git/commits", {"message": "Publish Blot web client", "tree": tree_sha,
                                   "parents": [previous] if previous else []})
     if previous:
