@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Базар блот — новый макет стола и торговли</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="preview-nav" aria-label="Экраны макета">
+    <button data-scene="play" class="chosen">Стол</button>
+    <button data-scene="proof">Объявления</button>
+    <button data-scene="bid">Торговля</button>
+    <button data-scene="landscape">Горизонтально</button>
+  </nav>
+  <main id="scenes"></main>
+  <section class="preview-controls" aria-label="Демонстрация объявлений">
+    <p>Показать всплывающее объявление у игрока:</p>
+    <div id="announcement-controls"></div>
+    <p class="preview-note">Дизайн-макет. Примеры счёта и раздачи; к реальной партии не подключается.</p>
+  </section>
+  <script src="app.js"></script>
+</body>
+</html>
