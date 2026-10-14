@@ -1,11 +1,21 @@
 // Isolated visual prototype: no game rules, sockets, guest storage or production changes.
 const CARD_BASE = "../cards/";
 const glyphs = { CLUBS: "♣", DIAMONDS: "♦", HEARTS: "♥", SPADES: "♠" };
-const rankOrder = ["ACE", "KING", "QUEEN", "JACK", "TEN", "NINE", "EIGHT", "SEVEN"];
+const suitOrder = ["CLUBS", "DIAMONDS", "HEARTS", "SPADES"];
+const trumpRanks = ["JACK", "NINE", "ACE", "TEN", "KING", "QUEEN", "EIGHT", "SEVEN"];
+const plainRanks = ["ACE", "TEN", "KING", "QUEEN", "JACK", "NINE", "EIGHT", "SEVEN"];
 const hand = [
-  ["SPADES", "ACE"], ["HEARTS", "KING"], ["DIAMONDS", "QUEEN"], ["CLUBS", "JACK"],
-  ["SPADES", "TEN"], ["HEARTS", "NINE"], ["DIAMONDS", "EIGHT"], ["CLUBS", "SEVEN"],
-].sort((a, b) => rankOrder.indexOf(a[1]) - rankOrder.indexOf(b[1]));
+  ["SPADES", "QUEEN"], ["CLUBS", "ACE"], ["SPADES", "KING"], ["CLUBS", "JACK"],
+  ["SPADES", "TEN"], ["CLUBS", "NINE"], ["SPADES", "ACE"], ["CLUBS", "TEN"],
+];
+function sortHand(source, trump) {
+  return [...source].sort(([suitA, rankA], [suitB, rankB]) => {
+    const suits = suitOrder.indexOf(suitA) - suitOrder.indexOf(suitB);
+    if (suits) return suits;
+    const ranks = suitA === trump ? trumpRanks : plainRanks;
+    return ranks.indexOf(rankA) - ranks.indexOf(rankB);
+  });
+}
 const cardImage = (suit, rank) => `<img src="${CARD_BASE}${suit}-${rank}.svg" alt="${rank} ${suit}" draggable="false">`;
 const suitImage = suit => `<img class="suit" src="${CARD_BASE}${suit}.svg" alt="${glyphs[suit]}" draggable="false">`;
 const menuIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`;
@@ -17,12 +27,12 @@ const players = `<div class="player player-north">${avatar("Д", "NORTH")}<div c
 function scoreboard(bidding) {
   return `<div class="score" aria-label="Счёт команд"><table><thead><tr><th></th><th>Мы</th><th>Они</th></tr></thead><tbody><tr><th>Партия</th><td>112</td><td>86</td></tr><tr class="live"><th>Раздача</th><td>${bidding ? 0 : 43}</td><td>${bidding ? 0 : 28}</td></tr></tbody></table><div class="score-meta"><span>До 301</span><span>Очки карт</span></div></div>`;
 }
-function cards(bidding, proof) {
-  const cards = proof ? hand.filter(c => c[1] !== "TEN") : hand;
-  return `<div class="hand" aria-label="Карты по рангу от туза до семёрки" style="--count:${cards.length}">${cards.map(([suit, rank], index) => {
+function cards(bidding, proof, trump = "CLUBS") {
+  const cards = sortHand(proof ? hand.filter(([suit, rank]) => !(suit === "SPADES" && rank === "TEN")) : hand, trump);
+  return `<div class="hand" aria-label="Карты по мастям, внутри масти — по силе в блоте" style="--count:${cards.length}">${cards.map(([suit, rank], index) => {
     const available = bidding || (proof ? suit === "CLUBS" && rank === "JACK" : suit === "SPADES");
     const middle = (cards.length - 1) / 2;
-    return `<button class="hand-card ${available ? "" : "unavailable"} ${suit === "CLUBS" ? "trump" : ""}" style="--index:${index};--angle:${(index - middle) * 1.6};--curve:${Math.abs(index - middle) * 1.2}" ${!available || bidding ? "disabled" : ""} aria-label="${rank} ${glyphs[suit]}${suit === "CLUBS" ? ", козырь" : ""}">${cardImage(suit, rank)}</button>`;
+    return `<button class="hand-card ${available ? "" : "unavailable"} ${suit === trump ? "trump" : ""}" style="--index:${index};--angle:${(index - middle) * 1.6};--curve:${Math.abs(index - middle) * 1.2}" ${!available || bidding ? "disabled" : ""} aria-label="${rank} ${glyphs[suit]}${suit === trump ? ", козырь" : ""}">${cardImage(suit, rank)}</button>`;
   }).join("")}</div>`;
 }
 function bidPanel() {
@@ -103,11 +113,27 @@ document.querySelectorAll(".preview-nav button").forEach(button => button.addEve
 }));
 document.querySelectorAll(".bid-panel").forEach(panel => {
   let amount = 16;
+  let minimum = 16;
   function update() { panel.querySelector("output").textContent = amount; panel.querySelector(".submit-bid").textContent = `Заявить ${amount}`; }
   panel.querySelector(".increase").addEventListener("click", () => { amount++; update(); });
-  panel.querySelector(".decrease").addEventListener("click", () => { amount = Math.max(16, amount - 1); update(); });
+  panel.querySelector(".decrease").addEventListener("click", () => { amount = Math.max(minimum, amount - 1); update(); });
   panel.querySelectorAll("[data-suit]").forEach(button => button.addEventListener("click", () => panel.querySelectorAll("[data-suit]").forEach(b => b.classList.toggle("selected", b === button))));
   panel.querySelector(".caput").addEventListener("click", event => { const button = event.currentTarget; const pressed = button.getAttribute("aria-pressed") !== "true"; button.setAttribute("aria-pressed", pressed); if (pressed) amount = Math.max(26, amount); update(); });
+  // A draft suit does not change the current contract or reorder the hand.
+  // Submit only applies a visual example; it does not run the game's auction.
+  panel.querySelector(".submit-bid").addEventListener("click", () => {
+    const suit = panel.querySelector("[data-suit].selected").dataset.suit;
+    const trump = suit === "BOI" ? null : suit;
+    const symbol = trump ? suitImage(trump) : "Бой";
+    panel.querySelector(".current-offer").innerHTML = `<span>Ваша заявка</span><b>${amount} <span class="suit-chip">${symbol}</span></b>`;
+    const board = panel.closest(".board");
+    board.querySelector(".contract > span").textContent = trump ? "Козырь" : "Контракт";
+    board.querySelector(".contract > strong").innerHTML = symbol;
+    board.querySelector(".hand").outerHTML = cards(true, false, trump);
+    minimum = amount + 1;
+    amount = minimum;
+    update();
+  });
 });
 function fitLandscape() { document.documentElement.style.setProperty("--landscape-scale", Math.min(390, innerWidth) / 844); document.documentElement.style.setProperty("--focus-landscape-scale", Math.min(844, innerWidth - (innerWidth > 600 ? 32 : 0)) / 844); }
 addEventListener("resize", fitLandscape); fitLandscape(); renderArchive();
