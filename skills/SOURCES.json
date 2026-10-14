@@ -1,0 +1,38 @@
+[
+  {
+    "name": "frontend-design",
+    "repository": "https://github.com/anthropics/skills",
+    "commit": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+    "path": "skills/frontend-design"
+  },
+  {
+    "name": "canvas-design",
+    "repository": "https://github.com/anthropics/skills",
+    "commit": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+    "path": "skills/canvas-design"
+  },
+  {
+    "name": "taste-skill",
+    "repository": "https://github.com/Leonxlnx/taste-skill",
+    "commit": "6dbbb03c9b56b6564ab79c5fed45737e30ba8051",
+    "path": "skills/taste-skill"
+  },
+  {
+    "name": "game-development",
+    "repository": "https://github.com/davila7/claude-code-templates",
+    "commit": "5d3ef64aca75f62027b4eb14bd20a65b86bcc99b",
+    "path": "cli-tool/components/skills/creative-design/game-development"
+  },
+  {
+    "name": "mobile-design",
+    "repository": "https://github.com/davila7/claude-code-templates",
+    "commit": "5d3ef64aca75f62027b4eb14bd20a65b86bcc99b",
+    "path": "cli-tool/components/skills/creative-design/mobile-design"
+  },
+  {
+    "name": "ui-design-system",
+    "repository": "https://github.com/davila7/claude-code-templates",
+    "commit": "5d3ef64aca75f62027b4eb14bd20a65b86bcc99b",
+    "path": "cli-tool/components/skills/creative-design/ui-design-system"
+  }
+]
