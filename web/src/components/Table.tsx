@@ -391,6 +391,9 @@ export default function Table({
           >
             Не показывать
           </button>
+          <button className="text-button" onClick={onCoach}>
+            Спросить тренера
+          </button>
         </Modal>
       )}
       {lastOpen && last && (

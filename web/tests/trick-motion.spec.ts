@@ -67,6 +67,20 @@ test("declining declarations preserves the hand; trick clears, images stay offli
   ).toBeVisible();
   await expect(page.locator(".hand button")).toHaveCount(8);
   await page
+    .getByRole("dialog", { name: "Показать объявления?" })
+    .getByRole("button", { name: "Спросить тренера", exact: true })
+    .click();
+  await expect(
+    page.getByRole("dialog", { name: "Чат с тренером" }),
+  ).toBeVisible();
+  await page
+    .getByRole("dialog", { name: "Чат с тренером" })
+    .getByRole("button", { name: "Закрыть", exact: true })
+    .click();
+  await expect(
+    page.getByRole("dialog", { name: "Показать объявления?" }),
+  ).toBeVisible();
+  await page
     .getByRole("button", { name: "Не показывать", exact: true })
     .click();
   await expect(page.locator(".hand button:enabled").first()).toBeVisible();

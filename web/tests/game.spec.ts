@@ -45,7 +45,14 @@ test("real auction, legal hand, pause for coach, AI failure and exact reload con
   await start(page);
   expect(await page.locator(".bid-hand .playing-card").count()).toBe(8);
   await closeAuction(page);
-  await page.getByRole("button", { name: "Тренер", exact: true }).click();
+  if (
+    await page.getByRole("dialog", { name: "Показать объявления?" }).isVisible()
+  )
+    await page
+      .getByRole("dialog", { name: "Показать объявления?" })
+      .getByRole("button", { name: "Спросить тренера", exact: true })
+      .click();
+  else await page.getByRole("button", { name: "Тренер", exact: true }).click();
   await expect(
     page.getByRole("dialog", { name: "Чат с тренером" }),
   ).toBeVisible();

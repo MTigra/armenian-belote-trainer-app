@@ -9,7 +9,11 @@ kotlin {
     jvmToolchain(21)
     jvm()
     js(IR) {
-        nodejs()
+        nodejs {
+            // Full multi-deal simulations share CI CPUs with compilation; keep assertions,
+            // but allow more than Mocha's default two seconds per scenario.
+            testTask { useMocha { timeout = "10s" } }
+        }
         binaries.library()
         generateTypeScriptDefinitions()
         useEsModules()
