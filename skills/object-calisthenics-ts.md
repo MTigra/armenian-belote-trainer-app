@@ -1,6 +1,6 @@
 ---
 name: object-calisthenics
-description: Применяй Object Calisthenics при написании, рефакторинге или ревью Kotlin-кода в проекте. Используй skill для Kotlin-задач, где нужны небольшие объекты, строгая инкапсуляция и учебные ограничения Object Calisthenics.
+description: Применяй Object Calisthenics при написании, рефакторинге или ревью typescript-кода в проекте. Используй skill для typescript-задач, где нужны небольшие объекты, строгая инкапсуляция и учебные ограничения Object Calisthenics.
 ---
 
 # Object Calisthenics Skill
