@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Action, ChatMessage, SavedMatch, Seat } from "./types";
 import type {
   ConnectionState,
@@ -17,6 +17,7 @@ import {
   rememberGuest,
   serverOrigin,
   storedGuest,
+  waitForOnlineServer,
 } from "./onlineApi";
 import { OnlineSocket } from "./OnlineSocket";
 import { finishOnlineMatch, loadOnlineChat, saveOnlineChat } from "./storage";
@@ -39,6 +40,8 @@ export function useOnlineGame(onSaved: (match: SavedMatch) => Promise<void>) {
   const archived = useRef<SavedMatch | null>(null);
   const diaryId = useRef<string | null>(null);
   const entering = useRef(false);
+  const entry = useRef<AbortController | null>(null);
+  const cancelEntry = useCallback(() => entry.current?.abort(), []);
   const onSavedRef = useRef(onSaved);
   onSavedRef.current = onSaved;
   const writes = useRef(Promise.resolve());
@@ -203,11 +206,24 @@ export function useOnlineGame(onSaved: (match: SavedMatch) => Promise<void>) {
         });
     return () => {
       cancelled = true;
+      cancelEntry();
       socket.current?.close();
     };
   }, []);
   async function ensureGuest() {
-    if (identity.current?.origin === serverOrigin()) return identity.current;
+    const cached = identity.current;
+    if (cached?.origin === serverOrigin()) {
+      try {
+        await guestStatus(cached);
+        return cached;
+      } catch (failure) {
+        if (
+          !(failure instanceof OnlineFailure) ||
+          failure.code !== "SESSION_EXPIRED"
+        )
+          throw failure;
+      }
+    }
     persistGuest(null);
     const value = await createGuest();
     persistGuest(value);
@@ -218,16 +234,22 @@ export function useOnlineGame(onSaved: (match: SavedMatch) => Promise<void>) {
   ) {
     if (entering.current) return false;
     entering.current = true;
+    const controller = new AbortController();
+    entry.current = controller;
     setBusy(true);
     setError("");
     try {
+      await waitForOnlineServer(controller.signal);
       const value = await ensureGuest();
+      if (controller.signal.aborted) return false;
       const table = await operation(value);
+      if (controller.signal.aborted) return false;
       current.current = table;
       setSnapshot(table);
       attach(value, table.code);
       return true;
     } catch (failure) {
+      if (controller.signal.aborted) return false;
       setError(
         failure instanceof Error ? failure.message : "Не удалось подключиться.",
       );
@@ -238,6 +260,7 @@ export function useOnlineGame(onSaved: (match: SavedMatch) => Promise<void>) {
         persistGuest(null);
       return false;
     } finally {
+      entry.current = null;
       entering.current = false;
       setBusy(false);
     }
@@ -313,6 +336,7 @@ export function useOnlineGame(onSaved: (match: SavedMatch) => Promise<void>) {
     error,
     setError,
     busy,
+    cancelEntry,
     pending,
     saving,
     saved,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { OnlineGameController } from "../lib/useOnlineGame";
 import { configureOrigin, serverOrigin } from "../lib/onlineApi";
 import Icon from "./Icon";
@@ -18,6 +18,7 @@ export default function Connection({
     [name, setName] = useState("Базар блот"),
     [timer, setTimer] = useState("60"),
     [address, setAddress] = useState(serverOrigin);
+  useEffect(() => () => game.cancelEntry(), [game.cancelEntry]);
   async function connect() {
     try {
       configureOrigin(address);
@@ -64,6 +65,7 @@ export default function Connection({
                   <button
                     key={key}
                     aria-pressed={tab === key}
+                    disabled={game.busy}
                     onClick={() => setTab(key as "code" | "create")}
                   >
                     {label}
@@ -85,6 +87,7 @@ export default function Connection({
                       inputMode="numeric"
                       pattern="[0-9]{6}"
                       maxLength={6}
+                      disabled={game.busy}
                       value={code}
                       onChange={(event) =>
                         setCode(event.target.value.replace(/\D/g, ""))
@@ -100,6 +103,7 @@ export default function Connection({
                       <input
                         aria-label="Название стола"
                         maxLength={32}
+                        disabled={game.busy}
                         value={name}
                         onChange={(event) => setName(event.target.value)}
                         required
@@ -110,6 +114,7 @@ export default function Connection({
                       <select
                         aria-label="Таймер хода"
                         value={timer}
+                        disabled={game.busy}
                         onChange={(event) => setTimer(event.target.value)}
                       >
                         <option value="none">Без ограничения</option>
@@ -128,6 +133,11 @@ export default function Connection({
                       : "Создать стол"}
                 </button>
               </form>
+              {game.busy && (
+                <p className="connection-note" role="status">
+                  Первое подключение после перерыва может занять около минуты.
+                </p>
+              )}
               <details className="server-settings">
                 <summary>Настройки подключения</summary>
                 <label>
@@ -135,6 +145,7 @@ export default function Connection({
                   <input
                     aria-label="Адрес сервера"
                     type="url"
+                    disabled={game.busy}
                     value={address}
                     onChange={(event) => setAddress(event.target.value)}
                   />

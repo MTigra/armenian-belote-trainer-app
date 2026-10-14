@@ -3,6 +3,11 @@ services:
     name: armenian-blot
     runtime: docker
     plan: free
+    region: frankfurt
+    repo: https://github.com/MTigra/armenian-belote-trainer-app
+    branch: main
+    dockerfilePath: ./Dockerfile
+    autoDeployTrigger: "off"
     healthCheckPath: /api/health
     envVars:
       - key: PUBLIC_ORIGINS

@@ -72,7 +72,7 @@ jobs:
         run: docker build -t blot-online .
       - name: Check API and bundled web client
         run: |
-          docker run -d --name blot-online -p 8080:8080 -e PUBLIC_ORIGIN=http://127.0.0.1:8080 blot-online
+          docker run -d --name blot-online --memory=512m -p 8080:8080 -e PUBLIC_ORIGIN=http://127.0.0.1:8080 blot-online
           trap 'docker logs blot-online; docker rm -f blot-online' EXIT
           for attempt in $(seq 1 30); do
             curl -fsS http://127.0.0.1:8080/api/health >/dev/null && break

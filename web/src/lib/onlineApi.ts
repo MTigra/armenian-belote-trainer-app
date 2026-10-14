@@ -61,6 +61,54 @@ export function rememberGuest(guest: GuestIdentity | null): void {
   }
   localStorage.setItem("blot.onlineGuest", JSON.stringify(guest));
 }
+/** Wake a sleeping host with safe GETs before sending any state-changing request. */
+export async function waitForOnlineServer(cancel?: AbortSignal): Promise<void> {
+  const origin = serverOrigin();
+  const timeout = AbortSignal.timeout(90_000);
+  const signal = cancel ? AbortSignal.any([timeout, cancel]) : timeout;
+  try {
+    while (!signal.aborted) {
+      const response = await fetch(`${origin}/api/health`, {
+        signal,
+        cache: "no-store",
+      });
+      if (
+        response.ok &&
+        response.headers.get("content-type")?.includes("application/json")
+      ) {
+        const health = await response.json();
+        if (health.status === "ok" && String(health.protocolVersion) === "1")
+          return;
+        throw new OnlineFailure(
+          "PROTOCOL_ERROR",
+          "Сервер прислал неподдерживаемый ответ. Проверьте адрес сервера и обновите приложение.",
+        );
+      }
+      if (![200, 502, 503, 504].includes(response.status)) break;
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          signal.removeEventListener("abort", abort);
+          resolve();
+        }, 2000);
+        function abort() {
+          clearTimeout(timer);
+          signal.removeEventListener("abort", abort);
+          reject(signal.reason);
+        }
+        signal.addEventListener("abort", abort, { once: true });
+        if (signal.aborted) abort();
+      });
+    }
+  } catch (error) {
+    if (cancel?.aborted) throw cancel.reason;
+    if (error instanceof OnlineFailure) throw error;
+  }
+  if (cancel?.aborted) throw cancel.reason;
+  throw new OnlineFailure(
+    "SERVER_UNAVAILABLE",
+    "Не удалось дождаться сервера. Проверьте подключение и повторите попытку.",
+  );
+}
 export async function onlineRequest<T>(
   path: string,
   guest: GuestIdentity | null,
