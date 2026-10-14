@@ -15,3 +15,7 @@ When a task matches a skill below, read its SKILL.md before applying it. Resolve
 - Static artwork, posters, PNG/PDF composition: `skills/canvas-design/SKILL.md`.
 
 Game development also includes the upstream 2D, 3D, audio, multiplayer, PC, web and VR/AR subskills. Read them when relevant.
+
+# Project task tracking
+
+Track current tasks, completion evidence, dependencies, and deferred work in `docs/roadmap.md`. Update the relevant task when starting and finishing implementation, and record new blockers or remaining work. Keep task IDs stable. Do not mark unverified work as complete or invent deadlines. Technical decisions remain in `docs/technical-decisions.md`.

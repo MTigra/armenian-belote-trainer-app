@@ -28,7 +28,7 @@ pnpm dev
 - `skills/` — ранее установленные upstream-скиллы дизайна и игр, с оригинальными файлами, лицензиями и закреплёнными источниками в `SOURCES.json`.
 - `scripts/publish-pages.py` — публикация собранного приложения в GitHub Pages.
 
-Документация: [интерфейс и запуск](web/README.md), [API ядра](game-core/README.md), [технические решения](docs/technical-decisions.md).
+Документация: [задачи и порядок разработки](docs/roadmap.md), [интерфейс и запуск](web/README.md), [API ядра](game-core/README.md), [технические решения](docs/technical-decisions.md).
 
 ## Проверки
 
