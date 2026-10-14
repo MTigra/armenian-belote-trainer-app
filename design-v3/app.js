@@ -55,6 +55,12 @@ function renderArchive() {
   document.querySelectorAll(".scene:not([data-scene='bid']):not([data-scene='landscape']) .notice-tray .count").forEach(element => element.textContent = stored.length);
 }
 function announce(key) {
+  let active = document.querySelector(".scene.active");
+  if (!["play", "proof"].includes(active?.dataset.scene)) {
+    document.querySelector('.preview-nav button[data-scene="play"]').click();
+    active = document.querySelector('.scene[data-scene="play"]');
+  }
+  active?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   const item = noticeTypes[key];
   document.querySelectorAll(".scene[data-scene='play'],.scene[data-scene='proof']").forEach(scene => {
     scene.querySelectorAll("[data-static-notice]").forEach(element => element.hidden = true);

@@ -39,6 +39,8 @@
 
 ## Просмотр
 
+[Открыть опубликованный интерактивный макет](https://mtigra.github.io/armenian-belote-trainer-app/design-v3/).
+
 Открыть `index.html` через HTTP из корня репозитория:
 
 ```sh
