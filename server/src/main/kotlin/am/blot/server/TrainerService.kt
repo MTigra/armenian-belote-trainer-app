@@ -64,7 +64,7 @@ class TrainerService(private val hub: GameHub, private val settings: TrainerSett
                         validateTrainerAnswer(model, context, snapshot.state, r.requestId)
                     }
                     mutex.withLock { cached.completedAt = now() }
-                    log.info("trainer requestId={} provider={} model={} profile={} promptVersion=trainer-system-1 elapsedMs={} status=ok", r.requestId, settings.provider, settings.model, answer.profileVersion, (System.nanoTime() - started) / 1000000)
+                    log.info("trainer requestId={} provider={} model={} profile={} promptVersion=trainer-system-2 elapsedMs={} status=ok", r.requestId, settings.provider, settings.model, answer.profileVersion, (System.nanoTime() - started) / 1000000)
                     cached.result.complete(answer)
                 } catch (e: Throwable) {
                     val failure = when (e) {

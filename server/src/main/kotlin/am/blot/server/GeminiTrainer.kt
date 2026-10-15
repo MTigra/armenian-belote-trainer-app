@@ -1,6 +1,5 @@
 package am.blot.server
 
-import kotlinx.serialization.encodeToString
 
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -41,7 +40,7 @@ class GeminiTrainer(private val settings: TrainerSettings, private val client: H
         val body = buildJsonObject {
             put("systemInstruction", buildJsonObject { putJsonArray("parts") { add(buildJsonObject { put("text", TrainerResources.prompt) }) } })
             putJsonArray("contents") { add(buildJsonObject {
-                put("role", "user"); putJsonArray("parts") { add(buildJsonObject { put("text", trainerJson.encodeToString(context)) }) }
+                put("role", "user"); putJsonArray("parts") { add(buildJsonObject { put("text", TrainerModelContexts.json(context).toString()) }) }
             }) }
             put("generationConfig", buildJsonObject {
                 put("responseMimeType", "application/json"); put("responseJsonSchema", subset(TrainerResources.schema)); put("maxOutputTokens", settings.maxOutputTokens)

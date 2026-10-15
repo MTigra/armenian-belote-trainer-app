@@ -5,7 +5,6 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.coroutines.*
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import java.io.IOException
 import kotlin.math.ceil
@@ -20,7 +19,7 @@ class GroqTrainer(private val settings: TrainerSettings, private val client: Htt
             put("model", settings.model)
             putJsonArray("messages") {
                 add(buildJsonObject { put("role", "system"); put("content", TrainerResources.prompt) })
-                add(buildJsonObject { put("role", "user"); put("content", trainerJson.encodeToString(context)) })
+                add(buildJsonObject { put("role", "user"); put("content", TrainerModelContexts.json(context).toString()) })
             }
             put("stream", false)
             put("n", 1)
