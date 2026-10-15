@@ -1,0 +1,51 @@
+{
+  "protocolVersion": 1,
+  "requestId": "815cd861-3345-4e3a-8bb5-0c70e71a05f1",
+  "moment": {
+    "matchId": "9d096a51-f42c-4b92-9a6f-ab2ddb89d6a3",
+    "dealNumber": 1,
+    "actionIndex": 0,
+    "revision": null,
+    "seat": "SOUTH"
+  },
+  "perspective": "player",
+  "profileVersion": "armenian-training-0.2",
+  "answerType": "advice",
+  "suggestion": {
+    "type": "bid",
+    "seat": "SOUTH",
+    "amount": 9,
+    "trump": "SPADES",
+    "caput": false
+  },
+  "explanation": "У вас сильные пики: валет и девятка плюс третий треф, это хороший контроль. По оценке engine пики дают 61 очко, что достаточна для открытия на 9. Открыть 9 пики безопасно и даёт шанс получить хорошую контрактную базу.",
+  "alternatives": [
+    {
+      "action": {
+        "type": "pass",
+        "seat": "SOUTH"
+      },
+      "explanation": "Можно пасовать, если боитесь, что партнёр не поддержит, но это упускает шанс воспользоваться сильными пиками."
+    },
+    {
+      "action": {
+        "type": "bid",
+        "seat": "SOUTH",
+        "amount": 8,
+        "trump": "SPADES",
+        "caput": false
+      },
+      "explanation": "Открытие на 8 пики тоже приемлемо, но меньшее значение даёт меньше возможностей для последующего повышения."
+    }
+  ],
+  "assumptions": [],
+  "ruleRefs": [
+    "R24",
+    "R26"
+  ],
+  "validation": {
+    "format": "passed",
+    "actions": "passed",
+    "strategy": "not_evaluated"
+  }
+}

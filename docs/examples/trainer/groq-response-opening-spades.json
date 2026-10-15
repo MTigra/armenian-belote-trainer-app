@@ -1,0 +1,54 @@
+{
+  "protocolVersion": 1,
+  "requestId": "0bdc3ff7-8c94-48bf-bfa8-b0683488275a",
+  "moment": {
+    "matchId": "9d096a51-f42c-4b92-9a6f-ab2ddb89d6a3",
+    "dealNumber": 1,
+    "actionIndex": 0,
+    "revision": null,
+    "seat": "SOUTH"
+  },
+  "perspective": "player",
+  "profileVersion": "armenian-training-0.2",
+  "answerType": "advice",
+  "suggestion": {
+    "type": "bid",
+    "seat": "SOUTH",
+    "amount": 8,
+    "trump": "SPADES",
+    "caput": false
+  },
+  "explanation": "У вас сильный контроль в спадах – валет и 9 пик, плюс ещё одна карта пики, а по оценке engine набор в спадах дает 61 очко. Это позволяет открыть в спадах минимум 8, что безопасно при неизвестном партнере.",
+  "alternatives": [
+    {
+      "action": {
+        "type": "pass",
+        "seat": "SOUTH"
+      },
+      "explanation": "Пропуск даст шанс партнёру открыть, но при таком контроле лучше взять инициативу."
+    },
+    {
+      "action": {
+        "type": "bid",
+        "seat": "SOUTH",
+        "amount": 9,
+        "trump": "SPADES",
+        "caput": false
+      },
+      "explanation": "Если ожидаете поддержку партнёра, можно открыть 9 спадов, но риск неудачной контрактной оценки выше."
+    }
+  ],
+  "assumptions": [
+    "Партнёр может не иметь спадов",
+    "Оппоненты могут держать сильные спады"
+  ],
+  "ruleRefs": [
+    "R24",
+    "R26"
+  ],
+  "validation": {
+    "format": "passed",
+    "actions": "passed",
+    "strategy": "not_evaluated"
+  }
+}
