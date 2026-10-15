@@ -120,3 +120,62 @@ describe("React adapter uses real exported Kotlin engine", () => {
     expect(auto(saved.snapshot, viewOf(s).turn)).toBe(auto(s, viewOf(s).turn));
   });
 });
+
+it("preserves structured trainer replies in v2 and reads legacy v1 without invented validation", () => {
+  const saved = archive(complete());
+  const moment = {
+    matchId: saved.id,
+    dealNumber: 1,
+    actionIndex: 0,
+    revision: null,
+    seat: "SOUTH" as const,
+  };
+  const answer = {
+    protocolVersion: 1 as const,
+    requestId: crypto.randomUUID(),
+    moment,
+    perspective: "player" as const,
+    profileVersion: saved.record.profileVersion,
+    answerType: "rules" as const,
+    suggestion: null,
+    explanation: "Объяснение",
+    alternatives: [],
+    assumptions: [],
+    ruleRefs: [],
+    validation: {
+      format: "passed" as const,
+      actions: "not_applicable" as const,
+      strategy: "not_evaluated" as const,
+    },
+  };
+  saved.chat = [
+    {
+      id: "reply",
+      role: "coach",
+      text: answer.explanation,
+      moment: { deal: 1, action: 0 },
+      trainerMoment: moment,
+      perspective: "player",
+      answer,
+      createdAt: 1,
+    },
+  ];
+  const exported = exportMatch(saved);
+  expect(JSON.parse(exported).exportVersion).toBe(2);
+  expect(importMatch(exported).chat[0].answer).toEqual(answer);
+  const envelope = JSON.parse(exported);
+  envelope.exportVersion = 1;
+  envelope.match.chat = [
+    {
+      id: "old",
+      role: "coach",
+      text: "Старый ответ",
+      moment: { deal: 1, action: 0 },
+      createdAt: 1,
+      accessCode: "9999",
+    },
+  ];
+  const legacy = importMatch(JSON.stringify(envelope));
+  expect(legacy.chat[0]).not.toHaveProperty("answer");
+  expect(exportMatch(legacy)).not.toContain("accessCode");
+});

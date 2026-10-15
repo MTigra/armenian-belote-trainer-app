@@ -13,7 +13,7 @@
 | POST | `/api/tables` | Bearer token, `{name,timerSeconds}` → 201 личный `TableSnapshot` |
 | POST | `/api/tables/{code}/join` | Bearer token, `{}` → личный `TableSnapshot`; начатую партию можно открыть только её участнику |
 | GET | `/api/tables/{code}` | Bearer token → личный `TableSnapshot`; чужая сессия не получает состояние |
-| POST | `/api/trainer` | Пока 503 `{code:"TRAINER_UNAVAILABLE",message}` |
+| POST | `/api/trainer` | Версионированный запрос offline/review/online → проверенный совет; [контракт](trainer-api.md). Без настройки 503 |
 
 Ошибки API содержат `{code,message}`. Типичные коды: `SESSION_EXPIRED`, `TABLE_GONE`, `TABLE_FULL`, `ALREADY_SEATED`, `WRONG_SEAT`, `ILLEGAL_ACTION`, `STALE_STATE`. Ни истории, ни восстановления `GameState` от клиента через HTTP нет.
 
@@ -68,3 +68,10 @@
 соглашается, блот-реблот автоматический. Решение увеличивает revision как обычное
 действие. `currentPoints` показывает уже взятые карточные очки раздачи и
 раскрытые бонусы отдельно от `scores`. [Профиль](rules/profile-v2.md).
+
+## Контракт тренера
+
+`/api/trainer` реализован по отдельному протоколу 1. Полный контракт —
+[trainer-api.md](trainer-api.md); источники состояния, профили 0.1/0.2 и порядок
+реализации — [trainer-implementation.md](trainer-implementation.md). Онлайн
+передаёт ссылку на стол и revision, а не клиентскую копию руки.

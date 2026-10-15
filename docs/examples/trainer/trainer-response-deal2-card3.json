@@ -1,0 +1,41 @@
+{
+  "protocolVersion": 1,
+  "requestId": "8ebabcf0-3ba1-4a47-8b5b-b88d447fc854",
+  "moment": {
+    "matchId": "cb9024e9-f627-4e96-89d4-2adb3bd46117",
+    "dealNumber": 2,
+    "actionIndex": 45,
+    "revision": null,
+    "seat": "SOUTH"
+  },
+  "perspective": "player",
+  "profileVersion": "armenian-training-0.2",
+  "answerType": "advice",
+  "suggestion": {
+    "type": "declare",
+    "seat": "SOUTH"
+  },
+  "explanation": "Рекомендуется объявить комбинацию («declare»). В руке есть трефовый терц (10-В-Д) стоимостью 20 очков, который в случае победы в сравнении пойдет в зачет контракта вашей команды. Поскольку контракт 8 червей играет ваш партнер Север, эти очки существенно облегчат выполнение обязательства в 80 очков.",
+  "alternatives": [
+    {
+      "action": {
+        "type": "decline-declarations",
+        "seat": "SOUTH"
+      },
+      "explanation": "Отказ от объявления скроет терц от соперников, но полностью лишит команду шанса получить 20 очков за комбинацию."
+    }
+  ],
+  "assumptions": [
+    "У соперников нет более старшей комбинации, перебивающей терц до дамы."
+  ],
+  "ruleRefs": [
+    "R07",
+    "R09",
+    "R10"
+  ],
+  "validation": {
+    "format": "passed",
+    "actions": "passed",
+    "strategy": "not_evaluated"
+  }
+}

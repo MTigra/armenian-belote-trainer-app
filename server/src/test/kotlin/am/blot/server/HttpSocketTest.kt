@@ -25,8 +25,8 @@ class HttpSocketTest {
         assertEquals("Тигран", client.get("/api/me") { bearerAuth(guest.token) }.body<GuestStatus>().nickname)
         assertEquals(HttpStatusCode.BadRequest, client.post("/api/tables") { bearerAuth(guest.token); contentType(ContentType.Application.Json); setBody(CreateTable(timerSeconds = 12)) }.status)
         assertEquals(HttpStatusCode.BadRequest, client.get("/api/tables/abc") { bearerAuth(guest.token) }.status)
-        assertEquals(HttpStatusCode.ServiceUnavailable, client.post("/api/trainer").status)
-        assertEquals("TRAINER_UNAVAILABLE", client.post("/api/trainer").body<ApiError>().code)
+        assertEquals(HttpStatusCode.BadRequest, client.post("/api/trainer").status)
+        assertEquals("INVALID_TRAINER_REQUEST", client.post("/api/trainer").body<TrainerError>().code)
     }
     @Test fun fourRealSocketsReceivePrivateStateAndRecoverAfterInvalidCommand() = testApplication {
         application { gameServer(runTicker = false) }

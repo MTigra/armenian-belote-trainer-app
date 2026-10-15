@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { selectCard } from "./cardInput";
+import { test, expect, type Page, type Route } from "@playwright/test";
 const api = process.env.E2E_API_URL || "http://127.0.0.1:8080";
 async function credentials(page: Page) {
   return page.evaluate(() =>
@@ -24,10 +25,7 @@ async function play(page: Page) {
       return page.locator(".hand button:enabled").count();
     })
     .toBeGreaterThan(0);
-  await page
-    .locator(".hand button:enabled")
-    .first()
-    .click({ position: { x: 10, y: 16 } });
+  await selectCard(page, page.locator(".hand button:enabled").first());
 }
 test("four guests play online, resume their own seat, keep coach independent and save private local records", async ({
   browser,
@@ -221,6 +219,10 @@ test("four guests play online, resume their own seat, keep coach independent and
     await expect(pages[3].locator(".hand button")).toHaveCount(8);
     expect((await credentials(pages[3])).id).toBe(identity.id);
     expect((await snapshot(pages[3])).selfSeat).toBe("EAST");
+    let delayedTrainer: Route | undefined;
+    await pages[2].route("**/api/trainer", (route) => {
+      delayedTrainer = route;
+    });
     await pages[2].getByRole("button", { name: "Тренер", exact: true }).click();
     await expect(pages[2].locator(".coach-context")).toContainText(
       "партия продолжается",
@@ -228,9 +230,10 @@ test("four guests play online, resume their own seat, keep coach independent and
     await pages[2].getByLabel("Код тренера").fill("1234");
     await pages[2].getByLabel("Сообщение тренеру").fill("Объясни этот момент");
     await pages[2].getByRole("button", { name: "Отправить сообщение" }).click();
-    await expect(pages[2].getByRole("alert")).toContainText(
-      "пока не подключён",
-    );
+    await expect(
+      pages[2].locator('.coach-messages [role="status"]'),
+    ).toContainText("Ожидаем ответ");
+    const trainerMoment = await snapshot(pages[2]);
     await contexts[3].setOffline(true);
     await pages[3].evaluate(() =>
       (window as any).testSockets.forEach((socket: WebSocket) =>
@@ -247,6 +250,46 @@ test("four guests play online, resume their own seat, keep coach independent and
       pages[3].locator(".card-throw, .trick-collection"),
     ).toHaveCount(0);
     await expect(pages[2].locator(".message.user small")).toContainText(
+      "прошлый момент",
+    );
+    expect(delayedTrainer).toBeTruthy();
+    const trainerRequest = delayedTrainer!.request().postDataJSON();
+    expect(trainerRequest.source).toEqual({
+      kind: "online",
+      tableCode: trainerMoment.code,
+      expectedRevision: trainerMoment.revision,
+    });
+    expect(trainerRequest.source.view).toBeUndefined();
+    await delayedTrainer!.fulfill({
+      json: {
+        protocolVersion: 1,
+        requestId: trainerRequest.requestId,
+        moment: {
+          matchId: trainerMoment.id,
+          dealNumber: trainerMoment.view.dealNumber,
+          actionIndex: trainerMoment.actionCount,
+          revision: trainerMoment.revision,
+          seat: trainerMoment.selfSeat,
+        },
+        perspective: "player",
+        profileVersion: trainerMoment.view.profileVersion,
+        answerType: "analysis",
+        suggestion: null,
+        explanation: "Совет относится к исходному моменту.",
+        alternatives: [],
+        assumptions: [],
+        ruleRefs: [],
+        validation: {
+          format: "passed",
+          actions: "not_applicable",
+          strategy: "not_evaluated",
+        },
+      },
+    });
+    await expect(pages[2].locator(".message.coach")).toContainText(
+      "Совет относится к исходному моменту",
+    );
+    await expect(pages[2].locator(".message.coach small")).toContainText(
       "прошлый момент",
     );
     await pages[2]
@@ -313,7 +356,10 @@ test("four guests play online, resume their own seat, keep coach independent and
       "EAST",
     ]);
     expect(records[0][0].record).toEqual(records[3][0].record);
-    expect(records[2][0].chat).toHaveLength(1);
+    expect(records[2][0].chat).toHaveLength(2);
+    expect(records[2][0].chat[1].answer.moment.revision).toBe(
+      trainerMoment.revision,
+    );
     expect(records[0][0].chat).toHaveLength(0);
     const active = await pages[0].evaluate(
       async () =>

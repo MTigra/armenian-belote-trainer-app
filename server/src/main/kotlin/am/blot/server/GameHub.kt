@@ -51,6 +51,16 @@ class GameHub(
         room.snapshot(guest, now())
     }
     suspend fun snapshot(token: String, code: String) = mutex.withLock { room(code).snapshot(guests.authenticate(token, now()), now()) }
+    internal suspend fun trainerGuest(token: String): String = mutex.withLock { guests.authenticate(token, now()).id }
+    internal suspend fun trainerSnapshot(token: String, source: TrainerSource.Online): TrainerSnapshot = mutex.withLock {
+        val guest = guests.authenticate(token, now())
+        val room = room(source.tableCode)
+        val seat = room.members.requireSeat(guest.id)
+        room.match.checkRevision(source.expectedRevision)
+        val state = room.match.requireState()
+        TrainerSnapshot(state, GameEngine.view(state, seat),
+            TrainerMoment(room.details.id, state.dealNumber, state.actions.size, room.match.revision(), seat))
+    }
     internal suspend fun connect(token: String, code: String): Connection = mutex.withLock {
         val guest = guests.authenticate(token, now())
         val room = room(code)

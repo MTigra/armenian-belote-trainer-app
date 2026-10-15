@@ -1,3 +1,4 @@
+import { isTrainerAnswer, isTrainerMoment } from "./trainer";
 import { SEATS } from "./types";
 import type { SavedMatch, ChatMessage, Seat } from "./types";
 import { validateRecord, SUPPORTED_PROFILES } from "./engine";
@@ -5,7 +6,7 @@ export function exportMatch(match: SavedMatch): string {
   return JSON.stringify(
     {
       application: "armenian-blot",
-      exportVersion: 1,
+      exportVersion: 2,
       exportedAt: new Date().toISOString(),
       match,
     },
@@ -19,7 +20,7 @@ export function importMatch(text: string): SavedMatch {
   const envelope = JSON.parse(text);
   if (
     envelope.application !== "armenian-blot" ||
-    envelope.exportVersion !== 1 ||
+    ![1, 2].includes(envelope.exportVersion) ||
     !envelope.match
   )
     throw new Error("Неизвестный формат файла");
@@ -39,7 +40,19 @@ export function importMatch(text: string): SavedMatch {
             typeof m.moment?.deal === "number",
         )
         .map((m: ChatMessage) => ({
-          ...m,
+          role: m.role,
+          text: m.text,
+          moment: { deal: m.moment.deal, action: m.moment.action },
+          createdAt: Number.isFinite(m.createdAt) ? m.createdAt : 0,
+          ...(isTrainerMoment(m.trainerMoment)
+            ? { trainerMoment: m.trainerMoment }
+            : {}),
+          ...(["player", "all_hands"].includes(m.perspective ?? "")
+            ? { perspective: m.perspective }
+            : {}),
+          ...(isTrainerAnswer(m.answer) && m.role === "coach"
+            ? { answer: m.answer }
+            : {}),
           id: typeof m.id === "string" ? m.id : crypto.randomUUID(),
         }))
     : [];

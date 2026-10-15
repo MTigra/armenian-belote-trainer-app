@@ -8,6 +8,7 @@ import Icon from "./Icon";
 import PlayingCard from "./PlayingCard";
 import TrickCards from "./TrickCards";
 import SuitImage from "./SuitImage";
+import TrainerReply from "./TrainerReply";
 export default function Review({
   match,
   onBack,
@@ -16,7 +17,7 @@ export default function Review({
 }: {
   match: SavedMatch;
   onBack: () => void;
-  onCoach: (v: PlayerView, cursor: number) => void;
+  onCoach: (v: PlayerView, cursor: number, full: boolean) => void;
   onDelete: () => void;
 }) {
   const [cursor, setCursor] = useState(0),
@@ -160,7 +161,7 @@ export default function Review({
           </div>
           <button
             className="review-coach-button"
-            onClick={() => onCoach(rawView, cursor)}
+            onClick={() => onCoach(rawView, cursor, full)}
           >
             <Icon name="spark" />
             Обсудить этот момент
@@ -178,7 +179,12 @@ export default function Review({
                   <small>
                     Раздача {m.moment.deal} · действие {m.moment.action}
                   </small>
-                  {m.text}
+                  <small>
+                    {m.perspective === "all_hands"
+                      ? " · раскрытые карты"
+                      : " · позиция игрока"}
+                  </small>
+                  {m.answer ? <TrainerReply answer={m.answer} /> : m.text}
                 </div>
               ))}
             </>

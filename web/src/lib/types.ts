@@ -160,6 +160,9 @@ export interface ChatMessage {
   text: string;
   moment: { deal: number; action: number };
   createdAt: number;
+  trainerMoment?: import("./trainerTypes").TrainerMoment;
+  perspective?: import("./trainerTypes").TrainerPerspective;
+  answer?: import("./trainerTypes").TrainerAnswer;
 }
 export interface Session {
   id: string;

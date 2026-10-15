@@ -20,7 +20,7 @@ import java.net.URI
 import kotlin.time.Duration.Companion.seconds
 
 val defaultOrigins = setOf("http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:4173", "http://127.0.0.1:4173", "http://localhost:8080", "http://127.0.0.1:8080", "https://mtigra.github.io")
-fun Application.gameServer(hub: GameHub = GameHub(), origins: Set<String> = defaultOrigins, runTicker: Boolean = true, webRoot: File? = null) {
+fun Application.gameServer(hub: GameHub = GameHub(), origins: Set<String> = defaultOrigins, runTicker: Boolean = true, webRoot: File? = null, trainer: TrainerService = TrainerService(hub)) {
     install(ContentNegotiation) { json(wireJson) }
     install(StatusPages) {
         exception<ApiFailure> { call, cause -> call.respond(HttpStatusCode.fromValue(cause.status), cause.payload()) }
@@ -36,7 +36,7 @@ fun Application.gameServer(hub: GameHub = GameHub(), origins: Set<String> = defa
     install(WebSockets) { pingPeriod = 15.seconds; timeout = 30.seconds; maxFrameSize = 1_048_576 }
     val ticker = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     if (runTicker) ticker.launch { while (isActive) { delay(250); hub.tick() } }
-    monitor.subscribe(ApplicationStopped) { ticker.cancel(); runBlocking { hub.close() } }
+    monitor.subscribe(ApplicationStopped) { ticker.cancel(); trainer.close(); runBlocking { hub.close() } }
     routing {
         get("/api/health") { call.respond(mapOf("status" to "ok", "protocolVersion" to "2")) }
         post("/api/guests") { call.respond(HttpStatusCode.Created, hub.issue(call.receive<GuestRequest>())) }
@@ -45,7 +45,22 @@ fun Application.gameServer(hub: GameHub = GameHub(), origins: Set<String> = defa
         post("/api/tables") { call.respond(HttpStatusCode.Created, hub.create(call.token(), call.receive<CreateTable>())) }
         post("/api/tables/{code}/join") { call.respond(hub.join(call.token(), call.code())) }
         get("/api/tables/{code}") { call.respond(hub.snapshot(call.token(), call.code())) }
-        post("/api/trainer") { call.respond(HttpStatusCode.ServiceUnavailable, ApiError("TRAINER_UNAVAILABLE", "Сервис тренера пока не подключён.")) }
+        post("/api/trainer") {
+            var requestId: String? = null
+            try {
+                val bytes = call.receiveChannel().trainerBytes(512 * 1024)
+                val request = try { trainerJson.decodeFromString<TrainerRequest>(bytes.decodeToString()) }
+                    catch (_: SerializationException) { invalidTrainer() }
+                requestId = request.requestId.takeIf(::validUuid)
+                val token = call.request.headers[HttpHeaders.Authorization]?.takeIf { it.startsWith("Bearer ") }?.removePrefix("Bearer ")
+                call.respond(trainer.ask(request, token))
+            } catch (e: TrainerFailure) {
+                e.retryAfterSeconds?.let { call.response.headers.append(HttpHeaders.RetryAfter, it.toString()) }
+                call.respond(HttpStatusCode.fromValue(e.status), e.payload(requestId))
+            } catch (e: ApiFailure) {
+                call.respond(HttpStatusCode.fromValue(e.status), TrainerError(e.code, e.message, requestId, false))
+            }
+        }
         webSocket("/api/tables/{code}/ws") {
             if (call.request.headers[HttpHeaders.Origin]?.let { it !in origins } == true) { close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Origin rejected")); return@webSocket }
             handleGameSocket(hub, call.code())

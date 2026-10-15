@@ -8,7 +8,13 @@ web/test-results
 web/playwright-report
 skills
 previews
-docs
+docs/*
+!docs/trainer-system-prompt.txt
+!docs/trainer-model.schema.json
+!docs/rules/
+docs/rules/*
+!docs/rules/profile-v1.md
+!docs/rules/profile-v2.md
 .env
 .env.*
 **/__pycache__

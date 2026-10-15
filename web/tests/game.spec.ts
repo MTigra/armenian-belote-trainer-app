@@ -1,3 +1,4 @@
+import { selectCard } from "./cardInput";
 import { test, expect, type Page } from "@playwright/test";
 async function active(page: Page) {
   return page.evaluate(async () => {
@@ -89,10 +90,7 @@ test("real auction, legal hand, pause for coach, AI failure and exact reload con
     })
     .toBeGreaterThan(0);
   expect(await page.locator(".hand button").count()).toBeGreaterThan(0);
-  await page
-    .locator(".hand button:enabled")
-    .first()
-    .click({ position: { x: 10, y: 16 } });
+  await selectCard(page, page.locator(".hand button:enabled").first());
   await page.getByRole("button", { name: "Меню партии" }).click();
   await page.getByRole("button", { name: "Сохранить и выйти в меню" }).click();
   await expect(
@@ -132,7 +130,7 @@ test("complete a genuine match, save history, export, import and replay", async 
         .getByRole("button", { name: "Показать объявления", exact: true })
         .click();
     } else if (await playable.count()) {
-      await playable.first().click({ position: { x: 10, y: 16 } });
+      await selectCard(page, playable.first());
     } else await page.waitForTimeout(200);
   }
   await expect(page.getByText("Победили соперники")).toBeVisible();
@@ -311,16 +309,27 @@ test.describe("touch table", () => {
       await checkFan(page, ".hand", 8);
     }
     await page.setViewportSize({ width: 390, height: 844 });
-    const card = page.locator(".hand button:enabled").first();
-    const label = await card.getAttribute("aria-label");
-    await card.tap({ position: { x: 10, y: 16 } });
+    await expect(page.locator("#board")).toHaveAttribute(
+      "data-orientation",
+      "portrait",
+    );
+    const label = await page
+      .locator(".hand button:enabled")
+      .first()
+      .getAttribute("aria-label");
+    const card = page
+      .locator(".hand")
+      .getByRole("button", { name: label!, exact: true });
+    await selectCard(page, card, true);
     await expect(page.locator(".hand button")).toHaveCount(7);
     await expect(
       page.getByRole("button", { name: "Сыграть карту" }),
     ).toHaveCount(0);
+    // The centre can already be collecting the completed trick; the selected
+    // card must disappear from the hand regardless of that animation phase.
     await expect(
-      page.locator('.trick-play[data-seat="SOUTH"] .playing-card'),
-    ).toHaveAttribute("aria-label", label!);
+      page.locator(".hand").getByRole("button", { name: label!, exact: true }),
+    ).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "Последняя взятка", exact: true }),
     ).toBeVisible();

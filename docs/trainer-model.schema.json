@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Trainer model answer v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["answerType", "suggestionActionId", "explanation", "alternatives", "assumptions", "ruleRefs"],
+  "properties": {
+    "answerType": {"type": "string", "enum": ["advice", "rules", "analysis", "clarification"]},
+    "suggestionActionId": {"type": ["string", "null"]},
+    "explanation": {"type": "string", "minLength": 1, "maxLength": 4000},
+    "alternatives": {
+      "type": "array", "maxItems": 3,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["actionId", "explanation"],
+        "properties": {
+          "actionId": {"type": "string", "minLength": 1},
+          "explanation": {"type": "string", "minLength": 1, "maxLength": 1000}
+        }
+      }
+    },
+    "assumptions": {"type": "array", "maxItems": 5, "items": {"type": "string", "minLength": 1, "maxLength": 500}},
+    "ruleRefs": {"type": "array", "maxItems": 10, "items": {"type": "string", "pattern": "^R[0-9]{2}$"}}
+  }
+}

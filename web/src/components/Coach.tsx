@@ -1,11 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChatMessage, PlayerView, Seat } from "../lib/types";
-import { askTrainer } from "../lib/trainer";
+import { askTrainer, trainerHistory } from "../lib/trainer";
 import { names } from "../lib/types";
 import Icon from "./Icon";
 import Modal from "./Modal";
+import TrainerReply from "./TrainerReply";
+import type {
+  TrainerMoment,
+  TrainerSource,
+  TrainerRequest,
+} from "../lib/trainerTypes";
 export default function Coach({
   view,
+  source,
+  matchId,
+  token,
   actionIndex,
   messages,
   onMessage,
@@ -16,6 +25,9 @@ export default function Coach({
   labels = names,
 }: {
   view: PlayerView;
+  source: TrainerSource;
+  matchId: string;
+  token?: string;
   actionIndex: number;
   messages: ChatMessage[];
   onMessage: (m: ChatMessage) => void;
@@ -28,6 +40,7 @@ export default function Coach({
   const [question, setQuestion] = useState(""),
     [error, setError] = useState(""),
     [pending, setPending] = useState(false);
+  const retry = useRef<TrainerRequest | null>(null);
   const controller = useRef<AbortController | null>(null);
   const list = useRef<HTMLDivElement>(null);
   useEffect(() => () => controller.current?.abort(), []);
@@ -44,23 +57,60 @@ export default function Coach({
     setError("");
     setPending(true);
     const moment = { deal: view.dealNumber, action: actionIndex };
-    onMessage({
-      id: crypto.randomUUID(),
-      role: "user",
-      text: text.trim(),
-      moment,
-      createdAt: Date.now(),
-    });
+    const perspective =
+      source.kind === "review" ? source.perspective : "player";
+    const trainerMoment: TrainerMoment = {
+      matchId,
+      dealNumber: view.dealNumber,
+      actionIndex,
+      revision: source.kind === "online" ? source.expectedRevision : null,
+      seat: view.seat,
+    };
+    const previous = retry.current;
+    const reuse =
+      previous &&
+      previous.question === text.trim() &&
+      previous.accessCode === code &&
+      JSON.stringify(previous.source) === JSON.stringify(source);
+    const request: TrainerRequest = reuse
+      ? previous
+      : {
+          protocolVersion: 1,
+          requestId: crypto.randomUUID(),
+          accessCode: code,
+          question: text.trim(),
+          source,
+          history: trainerHistory(messages, trainerMoment, perspective),
+        };
+    retry.current = request;
+    if (!reuse)
+      onMessage({
+        id: crypto.randomUUID(),
+        role: "user",
+        trainerMoment,
+        perspective,
+        text: text.trim(),
+        moment,
+        createdAt: Date.now(),
+      });
     const c = new AbortController();
     controller.current = c;
     const timeout = setTimeout(() => c.abort(), 30000);
     try {
-      const answer = await askTrainer(view, text.trim(), code, c.signal);
+      const answer = await askTrainer(request, c.signal, token);
+      if (c.signal.aborted) return;
+      retry.current = null;
       onMessage({
         id: crypto.randomUUID(),
         role: "coach",
         text: answer.explanation,
-        moment,
+        answer,
+        trainerMoment: answer.moment,
+        perspective: answer.perspective,
+        moment: {
+          deal: answer.moment.dealNumber,
+          action: answer.moment.actionIndex,
+        },
         createdAt: Date.now(),
       });
     } catch (e) {
@@ -90,32 +140,53 @@ export default function Coach({
         </span>
         <div>
           <h2>Тренер</h2>
-          <p>Вопросы по текущей раздаче</p>
+          <p>
+            {source.kind === "review"
+              ? "Разбор завершённого матча"
+              : "Вопросы по текущей раздаче"}
+          </p>
         </div>
       </div>
       <div className="coach-context">
         <Icon name="pause" />
         Раздача {view.dealNumber} ·{" "}
         {view.phase === "BIDDING" ? "торговля" : `ход: ${labels[view.turn]}`} ·
-        {online ? "партия продолжается" : "партия на паузе"}
+        {source.kind === "review"
+          ? "просмотр истории"
+          : online
+            ? "партия продолжается"
+            : "партия на паузе"}
       </div>
+      {source.kind === "review" && (
+        <p role="status">
+          {source.perspective === "all_hands"
+            ? "Разбор с раскрытыми картами"
+            : "Разбор с позиции игрока"}
+        </p>
+      )}
       <div className="coach-messages" ref={list}>
         <p className="coach-status">
-          Тренер использует внешний сервис. До подключения сервера ответы
-          недоступны.
+          Тренер использует внешний сервис. Совет проверяется по правилам; его
+          стратегическая сила не гарантируется.
         </p>
-        {messages.map((m) => (
-          <div key={m.id} className={`message ${m.role}`}>
-            <small>
-              Раздача {m.moment.deal} · действие {m.moment.action}
-              {online &&
-                (m.moment.deal !== view.dealNumber ||
-                  m.moment.action !== actionIndex) &&
-                " · прошлый момент"}
-            </small>
-            {m.text}
-          </div>
-        ))}
+        {messages
+          .filter(
+            (m) =>
+              source.kind !== "review" ||
+              (m.perspective ?? "player") === source.perspective,
+          )
+          .map((m) => (
+            <div key={m.id} className={`message ${m.role}`}>
+              <small>
+                Раздача {m.moment.deal} · действие {m.moment.action}
+                {(online || source.kind === "review") &&
+                  (m.moment.deal !== view.dealNumber ||
+                    m.moment.action !== actionIndex) &&
+                  " · прошлый момент"}
+              </small>
+              {m.answer ? <TrainerReply answer={m.answer} /> : m.text}
+            </div>
+          ))}
         {pending && <p role="status">Ожидаем ответ…</p>}
         {error && (
           <p className="inline-error" role="alert">

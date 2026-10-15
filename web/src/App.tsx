@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChatMessage, PlayerView, SavedMatch } from "./lib/types";
 import { names } from "./lib/types";
 import { useOfflineGame } from "./lib/useOfflineGame";
@@ -34,8 +34,11 @@ export default function App() {
       cursor: number;
       review: boolean;
       online?: boolean;
+      full?: boolean;
     } | null>(null),
     [review, setReview] = useState<SavedMatch | null>(null);
+  const currentReview = useRef(review);
+  currentReview.current = review;
   const [trainerCode, setTrainerCode] = useState("");
   const [resumeCoach, setResumeCoach] = useState(
     () => location.hash === "#game-coach",
@@ -98,9 +101,10 @@ export default function App() {
     cursor = game.state?.actions.length ?? 0,
     isReview = false,
     isOnline = false,
+    full = false,
   ) {
     if (!v) return;
-    setCoach({ view: v, cursor, review: isReview, online: isOnline });
+    setCoach({ view: v, cursor, review: isReview, online: isOnline, full });
     history.pushState({ screen, coach: true }, "", `#${screen}-coach`);
   }
   function training() {
@@ -116,8 +120,10 @@ export default function App() {
       online.message(message);
       return;
     }
-    if (coach?.review && review) {
-      const updated = { ...review, chat: [...review.chat, message] };
+    if (coach?.review && currentReview.current) {
+      const latest = currentReview.current;
+      const updated = { ...latest, chat: [...latest.chat, message] };
+      currentReview.current = updated;
       setReview(updated);
       void game
         .addMatch(updated)
@@ -231,7 +237,7 @@ export default function App() {
                 key={review.id}
                 match={review}
                 onBack={() => go("history")}
-                onCoach={(v, c) => openCoach(v, c, true)}
+                onCoach={(v, c, full) => openCoach(v, c, true, false, full)}
                 onDelete={() => setModal("delete")}
               />
             )}
@@ -404,7 +410,7 @@ export default function App() {
             <p>
               Офлайн-тренировка работает на общем движке. Боты совершают
               разрешённые действия. Онлайн-партии работают через Ktor-сервер.
-              AI-тренер пока не подключён.
+              AI-тренер требует подключения к серверу и кода доступа.
             </p>
           </Modal>
         )}
@@ -432,37 +438,76 @@ export default function App() {
             </button>
           </Modal>
         )}
-        {coach && (
-          <Coach
-            view={
-              coach.online ? (online.snapshot?.view ?? coach.view) : coach.view
-            }
-            actionIndex={
-              coach.online
-                ? (online.snapshot?.actionCount ?? coach.cursor)
-                : coach.cursor
-            }
-            messages={
-              coach.online
-                ? online.chat
-                : coach.review
-                  ? (review?.chat ?? [])
-                  : (game.session?.chat ?? [])
-            }
-            onMessage={chatMessage}
-            onClose={closeCoach}
-            code={trainerCode}
-            onCode={setTrainerCode}
-            online={Boolean(coach.online)}
-            labels={
-              coach.online && online.snapshot
-                ? playerNames(online.snapshot, false)
-                : review && coach.review
-                  ? review.players
-                  : undefined
-            }
-          />
-        )}
+        {coach &&
+          (coach.online
+            ? online.snapshot
+            : coach.review
+              ? review
+              : game.session) && (
+            <Coach
+              matchId={
+                coach.online
+                  ? online.snapshot!.id
+                  : coach.review
+                    ? review!.id
+                    : game.session!.id
+              }
+              token={coach.online ? online.guest?.token : undefined}
+              source={
+                coach.online
+                  ? {
+                      kind: "online",
+                      tableCode: online.snapshot!.code,
+                      expectedRevision: online.snapshot!.revision,
+                    }
+                  : coach.review
+                    ? {
+                        kind: "review",
+                        localMatchId: review!.id,
+                        perspective: coach.full ? "all_hands" : "player",
+                        seat: coach.view.seat,
+                        dealNumber: coach.view.dealNumber,
+                        actionIndex: coach.cursor,
+                        record: review!.record,
+                      }
+                    : {
+                        kind: "offline",
+                        localMatchId: game.session!.id,
+                        actionIndex: coach.cursor,
+                        view: coach.view,
+                      }
+              }
+              view={
+                coach.online
+                  ? (online.snapshot?.view ?? coach.view)
+                  : coach.view
+              }
+              actionIndex={
+                coach.online
+                  ? (online.snapshot?.actionCount ?? coach.cursor)
+                  : coach.cursor
+              }
+              messages={
+                coach.online
+                  ? online.chat
+                  : coach.review
+                    ? (review?.chat ?? [])
+                    : (game.session?.chat ?? [])
+              }
+              onMessage={chatMessage}
+              onClose={closeCoach}
+              code={trainerCode}
+              onCode={setTrainerCode}
+              online={Boolean(coach.online)}
+              labels={
+                coach.online && online.snapshot
+                  ? playerNames(online.snapshot, false)
+                  : review && coach.review
+                    ? review.players
+                    : undefined
+              }
+            />
+          )}
         <div className="sr-only" aria-live="polite">
           {game.view?.phase === "PLAYING"
             ? `Ход: ${names[game.view.turn]}`
