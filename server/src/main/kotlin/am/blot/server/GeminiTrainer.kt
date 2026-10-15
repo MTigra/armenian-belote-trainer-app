@@ -63,9 +63,27 @@ class GeminiTrainer(private val settings: TrainerSettings, private val client: H
                     contentType(ContentType.Application.Json); header("X-goog-api-key", settings.apiKey); setBody(body.toString())
                 }.execute { response ->
                     val status = response.status.value
-                    if (status == 429) trainerFail(429, "TRAINER_RATE_LIMITED", "Квота тренера исчерпана. Попробуйте позже.", true,
-                        response.headers[HttpHeaders.RetryAfter]?.toIntOrNull()?.coerceAtLeast(0))
-                    if (status != 200) trainerFail(503, "TRAINER_UNAVAILABLE", "Тренер сейчас недоступен. Игру можно продолжить.", status >= 500)
+                    if (status != 200) {
+                        // Log only the allowlisted status, never the upstream message/body (it may echo secrets or input).
+                        val providerCode = try {
+                            val error = trainerJson.parseToJsonElement(response.bodyAsChannel().trainerBytes(16 * 1024).decodeToString())
+                                .jsonObject["error"]?.jsonObject?.get("status")?.jsonPrimitive?.content
+                            error?.takeIf { it in setOf("UNAVAILABLE", "INTERNAL", "RESOURCE_EXHAUSTED", "INVALID_ARGUMENT",
+                                "PERMISSION_DENIED", "UNAUTHENTICATED", "NOT_FOUND", "FAILED_PRECONDITION", "DEADLINE_EXCEEDED") } ?: "UNKNOWN"
+                        } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                          catch (_: Exception) { "UNKNOWN" }
+                        log.warn("trainer upstream requestId={} model={} attempt={} httpStatus={} providerCode={}",
+                            context.requestId, settings.model, attempt + 1, status, providerCode)
+                        when (status) {
+                            429 -> trainerFail(429, "TRAINER_RATE_LIMITED", "Квота тренера исчерпана. Попробуйте позже.", true,
+                                response.headers[HttpHeaders.RetryAfter]?.toIntOrNull()?.coerceAtLeast(0))
+                            401, 403 -> trainerFail(503, "TRAINER_PROVIDER_AUTH", "Провайдер отклонил доступ тренера. Сообщите владельцу приложения.")
+                            404 -> trainerFail(503, "TRAINER_MODEL_UNAVAILABLE", "Выбранная модель тренера недоступна. Сообщите владельцу приложения.")
+                            400, 422 -> trainerFail(503, "TRAINER_PROVIDER_REQUEST", "Провайдер отклонил запрос тренера. Сообщите владельцу приложения.")
+                            503 -> trainerFail(503, "TRAINER_PROVIDER_BUSY", "Модель тренера сейчас перегружена. Повторите вопрос немного позже.", true)
+                            else -> trainerFail(503, "TRAINER_UNAVAILABLE", "Тренер сейчас недоступен. Игру можно продолжить.", status >= 500)
+                        }
+                    }
                     val text = try { response.bodyAsChannel().trainerBytes(128 * 1024).decodeToString() }
                         catch (e: TrainerFailure) { invalidAnswer() }
                     val envelope = try { trainerJson.parseToJsonElement(text).jsonObject } catch (_: Exception) { invalidAnswer() }
@@ -81,7 +99,11 @@ class GeminiTrainer(private val settings: TrainerSettings, private val client: H
                 return result
             } catch (e: kotlinx.coroutines.CancellationException) { throw e }
             catch (e: TrainerFailure) { if (attempt == 1 || e.status != 503 || !e.retryable) throw e }
-            catch (e: IOException) { if (attempt == 1) trainerFail(503, "TRAINER_UNAVAILABLE", "Нет связи с тренером. Попробуйте позже.", true) }
+            catch (e: IOException) {
+                log.warn("trainer transport requestId={} model={} attempt={} exceptionType={}",
+                    context.requestId, settings.model, attempt + 1, e.javaClass.simpleName)
+                if (attempt == 1) trainerFail(503, "TRAINER_CONNECTION_FAILED", "Нет связи с тренером. Попробуйте позже.", true)
+            }
             catch (_: Exception) { invalidAnswer() }
             delay(Random.nextLong(500, 1501))
         }

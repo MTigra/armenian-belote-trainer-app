@@ -21,7 +21,8 @@ sealed class TrainerSource {
 @Serializable data class TrainerCandidate(val id: String, val action: Action)
 @Serializable data class TrainerContext(val contextVersion: Int = 1, val rules: TrainerRules, val moment: TrainerMoment,
     val perspective: String, val playerView: PlayerView, val actionCandidates: List<TrainerCandidate>, val question: String,
-    val history: List<TrainerHistory>, val revealedHands: Map<Seat, List<Card>>? = null)
+    val history: List<TrainerHistory>, val revealedHands: Map<Seat, List<Card>>? = null,
+    @Transient val requestId: String = "")
 @Serializable data class ModelAlternative(val actionId: String, val explanation: String)
 @Serializable data class TrainerModelAnswer(val answerType: String, val suggestionActionId: String?, val explanation: String,
     val alternatives: List<ModelAlternative>, val assumptions: List<String>, val ruleRefs: List<String>)

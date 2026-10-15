@@ -296,7 +296,12 @@ options от клиента не считаются доказательство
 | 422 | UNSUPPORTED_TRAINER_VERSION / UNSUPPORTED_RULES_PROFILE | Неподдерживаемая версия |
 | 429 | TRAINER_RATE_LIMITED | Квота Gemini; Retry-After, если известен |
 | 502 | TRAINER_INVALID_RESPONSE | Невалидный/обрезанный/недопустимый ответ |
-| 503 | TRAINER_UNAVAILABLE | Не настроен, недоступная модель, сбой авторизации провайдера или перегрузка |
+| 503 | TRAINER_UNAVAILABLE | Не настроен или прочий сбой провайдера |
+| 503 | TRAINER_PROVIDER_BUSY | Gemini вернул 503: временная перегрузка, разрешён ограниченный повтор |
+| 503 | TRAINER_PROVIDER_AUTH | Gemini вернул 401/403; ошибка ключа/прав сервера, не кода игрока |
+| 503 | TRAINER_MODEL_UNAVAILABLE | Gemini вернул 404; выбранная модель недоступна |
+| 503 | TRAINER_PROVIDER_REQUEST | Gemini вернул 400/422; запрос провайдеру отклонён |
+| 503 | TRAINER_CONNECTION_FAILED | Сетевой/транспортный сбой после повтора |
 | 504 | TRAINER_TIMEOUT | Истёк бюджет ожидания |
 
 Перегрузка retryable=true; отсутствие настройки/ошибка ключа — false.
@@ -368,3 +373,8 @@ TRAINER_TIMEOUT_MS, TRAINER_MAX_OUTPUT_TOKENS. Только серверные �
 P09 — online. Общий контракт фиксируем сейчас, поддерживаемые source включаем
 по этапам; пока source не реализован, возвращаем 422 TRAINER_SOURCE_NOT_SUPPORTED,
 retryable=false, не fallback. Сейчас реализованы все три source.
+
+Диагностика провайдера: upstream-журнал содержит requestId, модель, номер попытки,
+исходный HTTP-статус и allowlist-код Google (например UNAVAILABLE), но не тело
+ошибки или provider message. Для сетевого сбоя сохраняется только тип исключения.
+Внутренний requestId контекста transient и не отправляется модели.

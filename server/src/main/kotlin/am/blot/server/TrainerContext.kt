@@ -55,7 +55,7 @@ internal object TrainerContexts {
                 it.moment.matchId == snapshot.moment.matchId && it.moment.seat == snapshot.moment.seat &&
                 it.perspective == snapshot.perspective && it.moment.actionIndex <= snapshot.moment.actionIndex &&
                 it.moment.dealNumber <= snapshot.moment.dealNumber
-            }, revealedHands = if (snapshot.perspective == "all_hands") snapshot.state!!.hands else null)
+            }, revealedHands = if (snapshot.perspective == "all_hands") snapshot.state!!.hands else null, requestId = r.requestId)
     }
     fun candidates(v: PlayerView): List<TrainerCandidate> = buildList {
         val o = v.options

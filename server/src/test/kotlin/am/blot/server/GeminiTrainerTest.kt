@@ -23,6 +23,7 @@ class GeminiTrainerTest {
             val contextText = sent["contents"]!!.jsonArray[0].jsonObject["parts"]!!.jsonArray[0].jsonObject["text"]!!.jsonPrimitive.content
             assertFalse(contextText.contains("test-key"))
             assertFalse(contextText.contains("accessCode"))
+            assertFalse(trainerJson.parseToJsonElement(contextText).jsonObject.containsKey("requestId"))
             assertNotNull(sent["generationConfig"]!!.jsonObject["responseJsonSchema"])
             respond("""{"candidates":[{"finishReason":"STOP","content":{"parts":[{"text":"{\"answerType\":\"rules\",\"suggestionActionId\":null,\"explanation\":\"Объяснение\",\"alternatives\":[],\"assumptions\":[],\"ruleRefs\":[]}"}]}}],"usageMetadata":{"totalTokenCount":100}}""", HttpStatusCode.OK)
         }
@@ -31,7 +32,8 @@ class GeminiTrainerTest {
         }
     }
     @Test fun providerFailuresAreSanitizedAndRateLimitIsNotRetried() = runBlocking {
-        for ((status, code) in listOf(HttpStatusCode.TooManyRequests to "TRAINER_RATE_LIMITED", HttpStatusCode.Unauthorized to "TRAINER_UNAVAILABLE", HttpStatusCode.NotFound to "TRAINER_UNAVAILABLE")) {
+        for ((status, code) in listOf(HttpStatusCode.TooManyRequests to "TRAINER_RATE_LIMITED", HttpStatusCode.Unauthorized to "TRAINER_PROVIDER_AUTH", HttpStatusCode.Forbidden to "TRAINER_PROVIDER_AUTH",
+            HttpStatusCode.BadRequest to "TRAINER_PROVIDER_REQUEST", HttpStatusCode.NotFound to "TRAINER_MODEL_UNAVAILABLE")) {
             var calls = 0
             val engine = MockEngine { calls++; respond("secret upstream error", status, headersOf(HttpHeaders.RetryAfter, "60")) }
             GeminiTrainer(TrainerSettings(apiKey = "test-key"), HttpClient(engine)).use { provider ->
@@ -51,4 +53,19 @@ class GeminiTrainerTest {
             }
         }
     }
+    @Test fun overloadedModelHasDistinctErrorAndOnlyOneRetry() = runBlocking {
+        var calls = 0
+        val engine = MockEngine {
+            calls++
+            respond("""{"error":{"status":"UNAVAILABLE","message":"private upstream content"}}""", HttpStatusCode.ServiceUnavailable)
+        }
+        GeminiTrainer(TrainerSettings(apiKey = "test-key"), HttpClient(engine)).use { provider ->
+            val failure = assertFailsWith<TrainerFailure> { provider.answer(context()) }
+            assertEquals("TRAINER_PROVIDER_BUSY", failure.code)
+            assertTrue(failure.retryable)
+            assertEquals(2, calls)
+            assertFalse(failure.message.contains("private"))
+        }
+    }
+
 }
