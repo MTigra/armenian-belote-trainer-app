@@ -17,6 +17,10 @@ class TrainerService(private val hub: GameHub, private val settings: TrainerSett
     private val requests = linkedMapOf<String, Cached>()
     private val closed = AtomicBoolean(false)
     private val log = org.slf4j.LoggerFactory.getLogger(TrainerService::class.java)
+    init {
+        log.info("trainer configuration apiKeyConfigured={} accessCodeConfigured={} model={}",
+            settings.apiKey.isNotBlank(), Regex("[0-9]{4}").matches(settings.accessCode), settings.model)
+    }
     private fun digest(text: String) = MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
     suspend fun ask(r: TrainerRequest, token: String?): TrainerAnswer {
         if (!Regex("[0-9]{4}").matches(settings.accessCode)) trainerFail(503, "TRAINER_UNAVAILABLE", "Сервис тренера пока не подключён. Игру можно продолжить.")
