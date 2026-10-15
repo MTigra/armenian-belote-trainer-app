@@ -10,7 +10,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class TrainerService(private val hub: GameHub, private val settings: TrainerSettings = TrainerSettings.environment(),
     provider: TrainerProvider? = null, private val now: () -> Long = System::currentTimeMillis) : AutoCloseable {
-    private val provider = provider ?: if (settings.apiKey.isBlank()) TrainerProvider { trainerFail(503, "TRAINER_UNAVAILABLE", "Сервис тренера пока не подключён. Игру можно продолжить.") } else GeminiTrainer(settings)
+    private val provider = provider ?: if (settings.apiKey.isBlank()) TrainerProvider { trainerFail(503, "TRAINER_UNAVAILABLE", "Сервис тренера пока не подключён. Игру можно продолжить.") } else when (settings.provider) {
+        "groq" -> GroqTrainer(settings)
+        "gemini" -> GeminiTrainer(settings)
+        else -> TrainerProvider { trainerFail(503, "TRAINER_UNAVAILABLE", "Провайдер тренера не настроен.") }
+    }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val mutex = Mutex()
     private data class Cached(val digest: String, val result: CompletableDeferred<TrainerAnswer>, var completedAt: Long? = null)
@@ -18,8 +22,8 @@ class TrainerService(private val hub: GameHub, private val settings: TrainerSett
     private val closed = AtomicBoolean(false)
     private val log = org.slf4j.LoggerFactory.getLogger(TrainerService::class.java)
     init {
-        log.info("trainer configuration apiKeyConfigured={} accessCodeConfigured={} model={}",
-            settings.apiKey.isNotBlank(), Regex("[0-9]{4}").matches(settings.accessCode), settings.model)
+        log.info("trainer configuration apiKeyConfigured={} accessCodeConfigured={} provider={} model={}",
+            settings.apiKey.isNotBlank(), Regex("[0-9]{4}").matches(settings.accessCode), settings.provider, settings.model)
     }
     private fun digest(text: String) = MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
     suspend fun ask(r: TrainerRequest, token: String?): TrainerAnswer {
@@ -55,12 +59,12 @@ class TrainerService(private val hub: GameHub, private val settings: TrainerSett
                                 is TrainerSource.Online -> hub.trainerSnapshot(token!!, s)
                             }
                         } catch (e: IllegalArgumentException) { invalidTrainer() }
-                        val context = TrainerContexts.build(snapshot, r)
+                        val context = TrainerContexts.build(snapshot, r, compactRules = settings.provider == "groq")
                         val model = provider.answer(context)
                         validateTrainerAnswer(model, context, snapshot.state, r.requestId)
                     }
                     mutex.withLock { cached.completedAt = now() }
-                    log.info("trainer requestId={} model={} profile={} promptVersion=trainer-system-1 elapsedMs={} status=ok", r.requestId, settings.model, answer.profileVersion, (System.nanoTime() - started) / 1000000)
+                    log.info("trainer requestId={} provider={} model={} profile={} promptVersion=trainer-system-1 elapsedMs={} status=ok", r.requestId, settings.provider, settings.model, answer.profileVersion, (System.nanoTime() - started) / 1000000)
                     cached.result.complete(answer)
                 } catch (e: Throwable) {
                     val failure = when (e) {
@@ -70,7 +74,7 @@ class TrainerService(private val hub: GameHub, private val settings: TrainerSett
                         is CancellationException -> TrainerFailure(503, "TRAINER_UNAVAILABLE", "Тренер недоступен.", true)
                         else -> TrainerFailure(502, "TRAINER_INVALID_RESPONSE", "Тренер прислал неподдерживаемый ответ.", true)
                     }
-                    log.info("trainer requestId={} model={} elapsedMs={} error={}", r.requestId, settings.model, (System.nanoTime() - started) / 1000000, failure.code)
+                    log.info("trainer requestId={} provider={} model={} elapsedMs={} error={}", r.requestId, settings.provider, settings.model, (System.nanoTime() - started) / 1000000, failure.code)
                     withContext(NonCancellable) {
                         mutex.withLock { requests.remove(key) }
                         cached.result.completeExceptionally(failure)

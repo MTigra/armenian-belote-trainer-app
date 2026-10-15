@@ -26,11 +26,11 @@ dependencies {
 
 tasks.processResources {
     from(rootProject.file("docs")) {
-        include("trainer-system-prompt.txt", "trainer-model.schema.json", "rules/profile-v1.md", "rules/profile-v2.md")
+        include("trainer-system-prompt.txt", "trainer-model.schema.json", "rules/profile-v1.md", "rules/profile-v2.md", "rules/trainer-profile-v1.txt", "rules/trainer-profile-v2.txt")
         into("trainer")
     }
     doLast {
-        listOf("trainer-system-prompt.txt", "trainer-model.schema.json", "rules/profile-v1.md", "rules/profile-v2.md").forEach {
+        listOf("trainer-system-prompt.txt", "trainer-model.schema.json", "rules/profile-v1.md", "rules/profile-v2.md", "rules/trainer-profile-v1.txt", "rules/trainer-profile-v2.txt").forEach {
             check(destinationDir.resolve("trainer/$it").isFile) { "Missing trainer resource: $it" }
         }
     }

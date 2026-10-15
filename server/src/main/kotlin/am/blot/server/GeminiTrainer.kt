@@ -15,16 +15,6 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import kotlin.random.Random
 
-fun interface TrainerProvider { suspend fun answer(context: TrainerContext): TrainerModelAnswer }
-data class TrainerSettings(val apiKey: String = "", val accessCode: String = "", val model: String = "gemini-3.8-flash",
-    val timeoutMs: Long = 25000, val maxOutputTokens: Int = 4096) {
-    companion object {
-        fun environment() = TrainerSettings(System.getenv("GEMINI_API_KEY").orEmpty(), System.getenv("TRAINER_ACCESS_CODE").orEmpty(),
-            System.getenv("GEMINI_MODEL")?.takeIf { Regex("[a-zA-Z0-9._-]+").matches(it) } ?: "gemini-3.8-flash",
-            System.getenv("TRAINER_TIMEOUT_MS")?.toLongOrNull()?.coerceIn(1000, 25000) ?: 25000,
-            System.getenv("TRAINER_MAX_OUTPUT_TOKENS")?.toIntOrNull()?.coerceIn(256, 8192) ?: 4096)
-    }
-}
 internal suspend fun ByteReadChannel.trainerBytes(limit: Int): ByteArray {
     val out = ByteArrayOutputStream()
     val buffer = ByteArray(8192)
@@ -36,10 +26,10 @@ internal suspend fun ByteReadChannel.trainerBytes(limit: Int): ByteArray {
     }
     return out.toByteArray()
 }
-private fun geminiHttpClient() = HttpClient(CIO) {
+internal fun trainerHttpClient() = HttpClient(CIO) {
     engine { System.getenv("HTTPS_PROXY")?.takeIf { it.isNotBlank() }?.let { proxy = ProxyBuilder.http(it) } }
 }
-class GeminiTrainer(private val settings: TrainerSettings, private val client: HttpClient = geminiHttpClient()) : TrainerProvider, AutoCloseable {
+class GeminiTrainer(private val settings: TrainerSettings, private val client: HttpClient = trainerHttpClient()) : TrainerProvider, AutoCloseable {
     private val log = org.slf4j.LoggerFactory.getLogger(GeminiTrainer::class.java)
     override suspend fun answer(context: TrainerContext): TrainerModelAnswer {
         // Provider subset: semantic bounds are enforced again by our validator.

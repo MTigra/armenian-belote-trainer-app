@@ -17,7 +17,7 @@ pnpm dev
 
 Для онлайна: `pnpm dev:online` запускает Ktor на :8080 и Vite на :5173. Создайте стол, передайте код ещё троим и запустите партию. Четыре игрока должны использовать независимые браузерные профили или устройства. Сервер также может отдавать собранный сайт; [запуск, Docker и Render](server/README.md).
 
-Активные онлайн-столы и гостевые сессии находятся только в памяти Ktor. Завершённые матчи и собственный чат сохраняются на устройствах; серверный архив и БД отсутствуют. AI-тренер реализован через Gemini и требует серверных GEMINI_API_KEY и TRAINER_ACCESS_CODE; опубликован на Render и GitHub Pages. Мобильная упаковка отложена. Ошибка тренера не останавливает игру.
+Активные онлайн-столы и гостевые сессии находятся только в памяти Ktor. Завершённые матчи и собственный чат сохраняются на устройствах; серверный архив и БД отсутствуют. AI-тренер реализован через Groq (openai/gpt-oss-120b) и требует серверных GROQ_API_KEY и TRAINER_ACCESS_CODE; опубликован на Render и GitHub Pages. Мобильная упаковка отложена. Ошибка тренера не останавливает игру.
 
 ## Структура
 
@@ -48,4 +48,4 @@ pnpm test:e2e
 
 ## Документация AI-тренера
 
-[Требования и HTTP-контракт](docs/trainer-api.md), [источники состояния и план реализации](docs/trainer-implementation.md), [системный промпт](docs/trainer-system-prompt.txt) и [примеры запросов Gemini](docs/examples/trainer/). Реализация поддерживает offline/review/online; [настройка](server/README.md#настройка-gemini), [проверки интеграции](docs/testing/trainer-integration.md), [публикация](docs/testing/trainer-public.md).
+[Требования и HTTP-контракт](docs/trainer-api.md), [источники состояния и план реализации](docs/trainer-implementation.md), [системный промпт](docs/trainer-system-prompt.txt) и [примеры запросов модели](docs/examples/trainer/). Реализация поддерживает offline/review/online; [настройка](server/README.md#настройка-groq), [проверки интеграции](docs/testing/trainer-integration.md), [публикация](docs/testing/trainer-public.md).

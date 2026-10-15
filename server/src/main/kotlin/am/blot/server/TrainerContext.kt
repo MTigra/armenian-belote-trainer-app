@@ -8,8 +8,10 @@ internal object TrainerResources {
         .bufferedReader().use { it.readText() }
     val prompt by lazy { text("trainer-system-prompt.txt") }
     val schema by lazy { trainerJson.parseToJsonElement(text("trainer-model.schema.json")) }
-    fun rules(version: String): TrainerRules {
+    fun rules(version: String, compact: Boolean = false): TrainerRules {
         if (!supportedProfile(version)) trainerFail(422, "UNSUPPORTED_RULES_PROFILE", "Версия правил не поддерживается.")
+        if (compact) return TrainerRules(version, text("rules/trainer-profile-v1.txt") +
+            if (version == PROFILE_VERSION) "\n" + text("rules/trainer-profile-v2.txt") else "")
         return TrainerRules(version, text("rules/profile-v1.md") + if (version == PROFILE_VERSION)
             "\n\nСледующее дополнение имеет приоритет над базовым текстом:\n" + text("rules/profile-v2.md") else "")
     }
@@ -48,9 +50,9 @@ internal object TrainerContexts {
         return TrainerSnapshot(state, GameEngine.view(state, s.seat),
             TrainerMoment(s.localMatchId, state.dealNumber, s.actionIndex, null, s.seat), s.perspective)
     }
-    fun build(snapshot: TrainerSnapshot, r: TrainerRequest): TrainerContext {
+    fun build(snapshot: TrainerSnapshot, r: TrainerRequest, compactRules: Boolean = false): TrainerContext {
         val v = snapshot.view
-        return TrainerContext(rules = TrainerResources.rules(v.profileVersion), moment = snapshot.moment, perspective = snapshot.perspective,
+        return TrainerContext(rules = TrainerResources.rules(v.profileVersion, compactRules), moment = snapshot.moment, perspective = snapshot.perspective,
             playerView = v, actionCandidates = candidates(v), question = r.question.trim(), history = r.history.filter {
                 it.moment.matchId == snapshot.moment.matchId && it.moment.seat == snapshot.moment.seat &&
                 it.perspective == snapshot.perspective && it.moment.actionIndex <= snapshot.moment.actionIndex &&
